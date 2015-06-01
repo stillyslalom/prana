@@ -133,13 +133,13 @@ end
 switch upper(tcorr)
     
     %Standard Cross Correlation
-    case {'SCC' 'HSDCC'}
+    case {'SCC' 'HSSCC'}
         
         if size(im1,3) == 3
             Gens=zeros(Sy,Sx,3,imClass);
             for n=1:length(X)
                 %for each new ROI, reset HSDCC option
-                HSDCC = strcmpi(tcorr,'HSDCC');
+                HSSCC = strcmpi(tcorr,'HSSCC');
                 
                 %apply the second order discrete window offset
                 x1 = X(n) - floor(round(Uin(n))/2);
@@ -186,7 +186,7 @@ switch upper(tcorr)
                     
                     %if we are still good for only 3 middle points, just do
                     %the minimum work, else use FFT to find the whole plane
-                    if HSDCC
+                    if HSSCC
                         
                         %abuse the Gens matrix:
                         %G(1) is x=-1, y= 0
@@ -204,7 +204,7 @@ switch upper(tcorr)
                         if max(Gens(1:5))~=Gens(3)
                             %dump the subset, and start over at first color index 
                             %(incr. at end of while loop back to 1)
-                            HSDCC = 0;
+                            HSSCC = 0;
                             r=0;  
                         end
                         
@@ -226,7 +226,7 @@ switch upper(tcorr)
                 
                 %if we're still doing HSDCC, cheat and use cheap subpixel
                 %functions - only 3pt fit works, else do full work
-                if HSDCC
+                if HSSCC
                     %a velocity will only be saved in the first peak
                     %location, regardless of other options selected
                     %the *(1) stubs are place holders for treating the
@@ -265,7 +265,7 @@ switch upper(tcorr)
         else
             for n=1:length(X)
                 %for each new ROI, reset HSDCC option
-                HSDCC = strcmpi(tcorr,'HSDCC');
+                HSSCC = strcmpi(tcorr,'HSSCC');
                 
                 %apply the second order discrete window offset
                 x1 = X(n) - floor(round(Uin(n))/2);
@@ -309,7 +309,7 @@ switch upper(tcorr)
                 
                 %if we are still good for only 3 middle points, just do
                 %the minimum work, else use FFT to find the whole plane
-                if HSDCC
+                if HSSCC
                     
                     %abuse the G matrix:
                     %G(1) is x=-1, y= 0
@@ -328,7 +328,7 @@ switch upper(tcorr)
                     if max(G)~=G(3)
                         %dump the subset, and start over at first color index
                         %(incr. at end of while loop back to 1)
-                        HSDCC = 0;
+                        HSSCC = 0;
                     else
                         %a velocity will only be saved in the first peak
                         %location, regardless of other options selected
@@ -352,7 +352,7 @@ switch upper(tcorr)
                         Dia(n,1) = 0;
                     end
                 end
-                if ~HSDCC
+                if ~HSSCC
                     %this seems redundant, but we might have changed the
                     %value of HSDCC if the peak isn't centered
                 

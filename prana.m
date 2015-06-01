@@ -1911,11 +1911,11 @@ end
 % --- Correlation Type Drop-Down Menu ---
 function correlationtype_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC'};
+    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC'};
     eval(['handles.data.PIV' handles.data.cpass '.corr = ctype{get(hObject,''Value'')};'])
     N=handles.data.cpass;
     A=eval(['handles.data.PIV' num2str(N)]);
-    if any(strcmpi(A.corr,{'SCC','GCC','DRPC'}))%any(str2double(A.corr)== [1 3]) %2 and 5 are RPC and SPC, both need rpcdiameter
+    if any(strcmpi(A.corr,{'SCC','GCC','DRPC','HSSCC'}))%any(str2double(A.corr)== [1 3]) %2 and 5 are RPC and SPC, both need rpcdiameter
         set(handles.rpcdiameter,'backgroundcolor',0.5*[1 1 1]);
     else
         set(handles.rpcdiameter,'backgroundcolor',[1 1 1]);
@@ -1925,6 +1925,9 @@ if str2double(handles.Njob)>0
         set(handles.rpcdiameter,'backgroundcolor',0.5*[1 1 1]);
     else
         set(handles.frac_filter_weight,'backgroundcolor',0.5*[1 1 1]);
+    end
+    if strcmpi(A.corr,'HSSCC')
+        eval(['handles.data.PIV' handles.data.cpass '.peaklocator = ''1'';'])
     end
     %For DCC, we don't allow windowing, and the actual window size is fixed based on the resolution
     if strcmpi(A.corr,{'DCC'})
@@ -3048,6 +3051,8 @@ elseif strcmpi(A.corr,'SPC');
     corr = 6;
 elseif strcmpi(A.corr,'DCC');
     corr = 7;
+elseif strcmpi(A.corr,'HSSCC');
+    corr = 8;
 end
 set(handles.windowres,'string',A.winres);
 set(handles.windowsize,'string',A.winsize);
@@ -3221,6 +3226,13 @@ else
     %if it's not DCC, make sure the autowinsize checkbox works
     set(handles.autowinsizecheckbox,'enable','on');
     %state of winsize control is updated above based on value of autowin
+end
+if get(handles.correlationtype,'Value')==8 % check if hsSCC
+    %disable subpixel type choice, and reset to 3pt 
+    set(handles.subpixelinterp,'enable','off');
+else
+    %enable choice of subpixel fitting
+    set(handles.subpixelinterp,'enable','on');
 end
 
 % Grays out the smoothing filt size box when smoothing is not selected when
