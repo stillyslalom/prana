@@ -8,7 +8,7 @@ imClass = 'double';
 %     Copyright (C) 2012  Virginia Polytechnic Institute and State
 %     University
 % 
-%     Copyright 2014.  Los Alamos National Security, LLC. This material was
+%     Copyright 2014-2015.  Los Alamos National Security, LLC. This material was
 %     produced under U.S. Government contract DE-AC52-06NA25396 for Los 
 %     Alamos National Laboratory (LANL), which is operated by Los Alamos 
 %     National Security, LLC for the U.S. Department of Energy. The U.S. 
@@ -133,11 +133,13 @@ end
 switch upper(tcorr)
     
     %Standard Cross Correlation
-    case 'SCC'
+    case {'SCC' 'HSDCC'}
         
         if size(im1,3) == 3
             Gens=zeros(Sy,Sx,3,imClass);
             for n=1:length(X)
+                %for each new ROI, reset HSDCC option
+                HSDCC = strcmpi(tcorr,'HSDCC');
                 
                 %apply the second order discrete window offset
                 x1 = X(n) - floor(round(Uin(n))/2);
@@ -155,7 +157,9 @@ switch upper(tcorr)
                 ymin2 = y2- ceil(Ny/2)+1;
                 ymax2 = y2+floor(Ny/2);
                 
-                for r=1:size(im1,3);
+                r=1;
+
+                while r<=size(im1,3);
                     %find the image windows
                     zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r);
                     zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r);
@@ -180,31 +184,88 @@ switch upper(tcorr)
                     region1 = (zone1).*sfilt1;
                     region2 = (zone2).*sfilt2;
                     
-                    %FFTs and Cross-Correlation
-                    f1   = fftn(region1,[Sy Sx]);
-                    f2   = fftn(region2,[Sy Sx]);
-                    P21  = f2.*conj(f1);
+                    %if we are still good for only 3 middle points, just do
+                    %the minimum work, else use FFT to find the whole plane
+                    if HSDCC
+                        
+                        %abuse the Gens matrix:
+                        %G(1) is x=-1, y= 0
+                        %G(2) is x= 0, y=-1
+                        %G(3) is x= 0, y= 0
+                        %G(4) is x= 0, y=+1
+                        %G(5) is x=+1, y= 0
+                        
+                        Gens(3) = sum(sum(region1.*region2));
+                        Gens(1) = sum(sum(region1.*circshift(region2,+1,2)));
+                        Gens(5) = sum(sum(region1.*circshift(region2,-1,2)));
+                        Gens(2) = sum(sum(region1.*circshift(region2,+1,1)));
+                        Gens(4) = sum(sum(region1.*circshift(region2,-1,1)));
+                        
+                        if max(Gens(1:5))~=Gens(3)
+                            %dump the subset, and start over at first color index 
+                            %(incr. at end of while loop back to 1)
+                            HSDCC = 0;
+                            r=0;  
+                        end
+                        
+                    else
+                        %FFTs and Cross-Correlation
+                        f1   = fftn(region1,[Sy Sx]);
+                        f2   = fftn(region2,[Sy Sx]);
+                        P21  = f2.*conj(f1);
+
+                        %Standard Fourier Based Cross-Correlation
+                        G = ifftn(P21,'symmetric');
+                        G = G(fftindy,fftindx);
+                        Gens(:,:,r) = abs(G);
+                    end
                     
-                    %Standard Fourier Based Cross-Correlation
-                    G = ifftn(P21,'symmetric');
-                    G = G(fftindy,fftindx);
-                    Gens(:,:,r) = abs(G);
+                    r=r+1;
                 end
                 G = mean(Gens,3);
                 
-                %subpixel estimation
-                [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
-                if Peakswitch
-                    C(n,:)=Ctemp;
-                    Dia(n,:)=Dtemp;
+                %if we're still doing HSDCC, cheat and use cheap subpixel
+                %functions - only 3pt fit works, else do full work
+                if HSDCC
+                    %a velocity will only be saved in the first peak
+                    %location, regardless of other options selected
+                    %the *(1) stubs are place holders for treating the
+                    %cnorm weighting function properly.  Right now cnorm=1
+                    %so it doesn't matter
+                    %X:
+                    lCm1 = log(G(1))*(1);
+                    lC00 = log(G(3))*(1);
+                    lCp1 = log(G(5))*(1);
+                    U(n,1) = (lCm1-lCp1)/(2*(lCm1+lCp1-2*lC00));
+                    %Y:
+                    lCm1 = log(G(2))*(1);
+                    %lC00 = log(G(3))*(1);
+                    lCp1 = log(G(4))*(1);
+                    V(n,1) = (lCm1-lCp1)/(2*(lCm1+lCp1-2*lC00));
+                    
+                    %save peak height at 0
+                    C(n,1) = G(3);
+                    %don't calculate diameters
+                    Dia(n,1) = 0;
+                    
+                else
+                    %subpixel estimation
+                    [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
+                    if Peakswitch
+                        C(n,:)=Ctemp;
+                        Dia(n,:)=Dtemp;
+                    end
+                    if saveplane
+                        Corrplanes(:,:,n) = G;
+                    end
                 end
-                if saveplane
-                    Corrplanes(:,:,n) = G;
-                end
+
             end
             
         else
             for n=1:length(X)
+                %for each new ROI, reset HSDCC option
+                HSDCC = strcmpi(tcorr,'HSDCC');
                 
                 %apply the second order discrete window offset
                 x1 = X(n) - floor(round(Uin(n))/2);
@@ -246,24 +307,74 @@ switch upper(tcorr)
                 region1 = (zone1).*sfilt1;
                 region2 = (zone2).*sfilt2;
                 
-                %FFTs and Cross-Correlation
-                f1   = fftn(region1,[Sy Sx]);
-                f2   = fftn(region2,[Sy Sx]);
-                P21  = f2.*conj(f1);
-                
-                %Standard Fourier Based Cross-Correlation
-                G = ifftn(P21,'symmetric');
-                G = G(fftindy,fftindx);
-                G = abs(G);
-                
-                %subpixel estimation
-                [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
-                if Peakswitch
-                    C(n,:)=Ctemp;
-                    Dia(n,:)=Dtemp;
+                %if we are still good for only 3 middle points, just do
+                %the minimum work, else use FFT to find the whole plane
+                if HSDCC
+                    
+                    %abuse the G matrix:
+                    %G(1) is x=-1, y= 0
+                    %G(2) is x= 0, y=-1
+                    %G(3) is x= 0, y= 0
+                    %G(4) is x= 0, y=+1
+                    %G(5) is x=+1, y= 0
+                    
+                    G = zeros(5,1);
+                    G(3) = sum(sum(region1.*region2));
+                    G(1) = sum(sum(region1.*circshift(region2,+1,2)));
+                    G(5) = sum(sum(region1.*circshift(region2,-1,2)));
+                    G(2) = sum(sum(region1.*circshift(region2,+1,1)));
+                    G(4) = sum(sum(region1.*circshift(region2,-1,1)));
+                    
+                    if max(G)~=G(3)
+                        %dump the subset, and start over at first color index
+                        %(incr. at end of while loop back to 1)
+                        HSDCC = 0;
+                    else
+                        %a velocity will only be saved in the first peak
+                        %location, regardless of other options selected
+                        %the *(1) stubs are place holders for treating the
+                        %cnorm weighting function properly.  Right now cnorm=1
+                        %so it doesn't matter
+                        %X:
+                        lCm1 = log(G(1))*(1);
+                        lC00 = log(G(3))*(1);
+                        lCp1 = log(G(5))*(1);
+                        U(n,1) = (lCm1-lCp1)/(2*(lCm1+lCp1-2*lC00));
+                        %Y:
+                        lCm1 = log(G(2))*(1);
+                        %lC00 = log(G(3))*(1);
+                        lCp1 = log(G(4))*(1);
+                        V(n,1) = (lCm1-lCp1)/(2*(lCm1+lCp1-2*lC00));
+
+                        %save peak height at 0
+                        C(n,1) = G(3);
+                        %don't calculate diameters
+                        Dia(n,1) = 0;
+                    end
                 end
-                if saveplane
-                    Corrplanes(:,:,n) = G;
+                if ~HSDCC
+                    %this seems redundant, but we might have changed the
+                    %value of HSDCC if the peak isn't centered
+                
+                    %FFTs and Cross-Correlation
+                    f1   = fftn(region1,[Sy Sx]);
+                    f2   = fftn(region2,[Sy Sx]);
+                    P21  = f2.*conj(f1);
+
+                    %Standard Fourier Based Cross-Correlation
+                    G = ifftn(P21,'symmetric');
+                    G = G(fftindy,fftindx);
+                    G = abs(G);
+
+                    %subpixel estimation
+                    [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
+                    if Peakswitch
+                        C(n,:)=Ctemp;
+                        Dia(n,:)=Dtemp;
+                    end
+                    if saveplane
+                        Corrplanes(:,:,n) = G;
+                    end
                 end
             end
         end
