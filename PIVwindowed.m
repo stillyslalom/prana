@@ -176,8 +176,6 @@ switch upper(tcorr)
                     end
                     
                     if Zeromean==1
-%                         zone1=zone1-mean(mean(zone1));
-%                         zone2=zone2-mean(mean(zone2));
                         zone1=zone1-mean(zone1(:));
                         zone2=zone2-mean(zone2(:));
                     end
@@ -197,16 +195,11 @@ switch upper(tcorr)
                         %G(4) is x= 0, y=+1
                         %G(5) is x=+1, y= 0
                         
-%                         Gens(3) = sum(sum(region1.*region2));
-%                         Gens(1) = sum(sum(region1.*circshift(region2,+1,2)));
-%                         Gens(5) = sum(sum(region1.*circshift(region2,-1,2)));
-%                         Gens(2) = sum(sum(region1.*circshift(region2,+1,1)));
-%                         Gens(4) = sum(sum(region1.*circshift(region2,-1,1)));
                         Gens(3) = abs( sum(region1(:).*region2(:)) );
                         Gens(1) = abs( sum(sum(region1( :, 1:end-1).*region2( :, 2:end  )))+sum(region1(:,end).*region2(:,1  )) );
                         Gens(5) = abs( sum(sum(region1( :, 2:end  ).*region2( :, 1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
                         Gens(2) = abs( sum(sum(region1(1:end-1, : ).*region2(2:end  , : )))+sum(region1(end,:).*region2(1,  :)) );
-                        Gens(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region1(end,:)) );
+                        Gens(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region2(end,:)) );
                         
                         if max(Gens(1:5))~=Gens(3)
                             %dump the subset, and start over at first color index 
@@ -306,8 +299,6 @@ switch upper(tcorr)
                 end
                 
                 if Zeromean==1
-%                     zone1=zone1-mean(mean(zone1));
-%                     zone2=zone2-mean(mean(zone2));
                     zone1=zone1-mean(zone1(:));
                     zone2=zone2-mean(zone2(:));
                 end
@@ -328,16 +319,11 @@ switch upper(tcorr)
                     %G(5) is x=+1, y= 0
                     
                     G = zeros(5,1);
-%                     G(3) = abs( sum(sum(region1.*region2)) );
-%                     G(1) = abs( sum(sum(region1.*circshift(region2,+1,2))) );
-%                     G(5) = abs( sum(sum(region1.*circshift(region2,-1,2))) );
-%                     G(2) = abs( sum(sum(region1.*circshift(region2,+1,1))) );
-%                     G(4) = abs( sum(sum(region1.*circshift(region2,-1,1))) );
                     G(3) = abs( sum(region1(:).*region2(:)) );
                     G(1) = abs( sum(sum(region1( :, 1:end-1).*region2( :, 2:end  )))+sum(region1(:,end).*region2(:,1  )) );
                     G(5) = abs( sum(sum(region1( :, 2:end  ).*region2( :, 1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
                     G(2) = abs( sum(sum(region1(1:end-1, : ).*region2(2:end  , : )))+sum(region1(end,:).*region2(1,  :)) );
-                    G(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region1(end,:)) );
+                    G(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region2(end,:)) );
                    
                     if max(G)~=G(3)
                         %dump the subset, and start over at first color index
@@ -435,8 +421,8 @@ switch upper(tcorr)
                     end
                     
                     if Zeromean==1
-                        zone1=zone1-mean(mean(zone1));
-                        zone2=zone2-mean(mean(zone2));
+                        zone1=zone1-mean(zone1(:));
+                        zone2=zone2-mean(zone2(:));
                     end
                     
                     %apply the image spatial filter
@@ -582,8 +568,8 @@ switch upper(tcorr)
                     end
                     
                     if Zeromean==1
-                        zone1=zone1-mean(mean(zone1));
-                        zone2=zone2-mean(mean(zone2));
+                        zone1=zone1-mean(zone1(:));
+                        zone2=zone2-mean(zone2(:));
                     end
                     
                     %apply the image spatial filter
@@ -665,8 +651,8 @@ switch upper(tcorr)
                 end
                 
                 if Zeromean==1
-                    zone1=zone1-mean(mean(zone1));
-                    zone2=zone2-mean(mean(zone2));
+                    zone1=zone1-mean(zone1(:));
+                    zone2=zone2-mean(zone2(:));
                 end
                 
                 %apply the image spatial filter
