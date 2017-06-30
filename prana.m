@@ -432,18 +432,21 @@ fprintf('Compiling whittaker_blackman.c to mex file....\n');
 % Compile the codes using the mac command
 % Case for linux machines
 try
+    filepath = which('whittaker_blackman.c');
+    filedir  = fileparts(filepath);
 	if isunix && ~ismac
-	    mex -O CFLAGS="\$CFLAGS -std=c99" whittaker_blackman.c
+        mex('-O','-outdir',filedir,'CFLAGS="\$CFLAGS -std=c99"',filepath)
 	else
 		% This command should work with both mac and windows.
-		mex whittaker_blackman.c;
+		mex(filepath,'-outdir',filedir);
 	end
 	
 	% Inform the user
 	fprintf(['Compiled whittaker_blackman.c to whittaker_blackman.' mexext '\n']);
 
-catch
+catch err
 	fprintf('Error compiling codes.\n');
+    disp(err.message)
 end
 
 % --- New Job Button ---
