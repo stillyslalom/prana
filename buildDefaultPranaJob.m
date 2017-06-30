@@ -219,6 +219,6 @@ if ~isfield(defaultdata,'outputpassbasename')
     defaultdata.PIV2.outbase = [defaultdata.outputpassbase 'pass2_'];
 end
 
-%defaultdata.version=pranaPIVcode('version');  %why isn't this done in the catch statement above?
-% defaultdata.ptv_version=pranaPTVcode('version');
+defaultdata.version=pranaPIVcode('version');  %why isn't this done in the catch statement above?
+defaultdata.ptv_version=pranaPTVcode('version');
 end
