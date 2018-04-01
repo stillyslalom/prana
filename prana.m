@@ -2162,6 +2162,42 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
+% --- Uncertainty Estimation Check Box ---
+function uncertaintycheckbox_Callback(hObject, eventdata, handles)
+if str2double(handles.Njob)>0
+    eval(['handles.data.PIV' handles.data.cpass '.uncertaintyestimate = num2str(get(hObject,''Value''));'])
+    handles=set_PIVcontrols(handles);
+    guidata(hObject,handles)
+end
+
+% --- PPR Uncertainty Estimation Check Box ---
+function ppruncertainty_Callback(hObject, eventdata, handles)
+if str2double(handles.Njob)>0 && get(handles.validatecheckbox,'Value')==1
+    eval(['handles.data.PIV' handles.data.cpass '.ppruncertainty = get(hObject,''String'');'])
+    guidata(hObject,handles)
+end
+
+% --- MI Uncertainty Estimation Check Box ---
+function miuncertainty_Callback(hObject, eventdata, handles)
+if str2double(handles.Njob)>0 && get(handles.validatecheckbox,'Value')==1
+    eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''String'');'])
+    guidata(hObject,handles)
+end
+
+% --- IM Uncertainty Estimation Check Box ---
+function imuncertainty_Callback(hObject, eventdata, handles)
+if str2double(handles.Njob)>0 && get(handles.validatecheckbox,'Value')==1
+    eval(['handles.data.PIV' handles.data.cpass '.imuncertainty = get(hObject,''String'');'])
+    guidata(hObject,handles)
+end
+
+% --- MC Uncertainty Estimation Check Box ---
+function mcuncertainty_Callback(hObject, eventdata, handles)
+if str2double(handles.Njob)>0 && get(handles.validatecheckbox,'Value')==1
+    eval(['handles.data.PIV' handles.data.cpass '.mcuncertainty = get(hObject,''String'');'])
+    guidata(hObject,handles)
+end
+
 % --- Correlation Peak Threshold Check Box ---
 function corrpeakthreshold_checkbox_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
@@ -2721,6 +2757,10 @@ if str2double(handles.Njob) == 0
     set(handles.corrpeak_absthresh,'String','','backgroundcolor',0.5*[1 1 1]);
     set(handles.corrpeak_ratiothresh,'String','','backgroundcolor',0.5*[1 1 1]);
     set(handles.corrpeaknum,'backgroundcolor',0.5*[1 1 1]);
+    set(handles.ppruncertainty,'String','','backgroundcolor',0.5*[1 1 1]);
+    set(handles.miuncertainty,'String','','backgroundcolor',0.5*[1 1 1]);
+    set(handles.imuncertainty,'String','','backgroundcolor',0.5*[1 1 1]);
+    set(handles.mcuncertainty,'String','','backgroundcolor',0.5*[1 1 1]);
     set(handles.outputbasename,'String','','backgroundcolor',0.5*[1 1 1]);
     set(handles.outputpassbasename,'String','','backgroundcolor',0.5*[1 1 1]);
     set(handles.outputdirectory,'String','','backgroundcolor',0.5*[1 1 1]);
@@ -3126,6 +3166,10 @@ set(handles.thresh_U,'string',A.valuthresh);
 set(handles.thresh_V,'string',A.valvthresh);
 set(handles.corrpeak_absthresh,'string',A.corrpeak_absthresh);
 set(handles.corrpeak_ratiothresh,'string',A.corrpeak_ratiothresh);
+% set(handles.uncertaintyestimate,'string',A.uncertaintyestimate);
+% set(handles.miuncertainty,'string',A.miuncertainty);
+% set(handles.imuncertainty,'string',A.imuncertainty);
+% set(handles.mcuncertainty,'string',A.mcuncertainty);
 set(handles.valextrapeaks,'value',str2double(A.valextrapeaks));
 set(handles.corrpeaknum,'value',str2double(A.corrpeaknum));
 set(handles.savepeakinfo,'value',str2double(A.savepeakinfo));
@@ -3195,6 +3239,20 @@ if str2double(A.val)==1
         set(handles.corrpeak_absthresh,'backgroundcolor',0.5*[1 1 1]);
         set(handles.corrpeak_ratiothresh,'backgroundcolor',0.5*[1 1 1]);
     end
+    
+    if str2double(A.uncertaintyestimate)==1
+        set(handles.uncertaintyestimate,'Value',1);
+        set(handles.ppruncertainty,'backgroundcolor',[1 1 1]);
+        set(handles.miuncertainty,'backgroundcolor',[1 1 1]);
+        set(handles.imuncertainty,'backgroundcolor',[1 1 1]);
+        set(handles.mcuncertainty,'backgroundcolor',[1 1 1]);
+    else
+        set(handles.uncertaintyestimate,'Value',0);
+        set(handles.ppruncertainty,'backgroundcolor',0.5*[1 1 1]);
+        set(handles.miuncertainty,'backgroundcolor',0.5*[1 1 1]);
+        set(handles.imuncertainty,'backgroundcolor',0.5*[1 1 1]);
+        set(handles.mcuncertainty,'backgroundcolor',0.5*[1 1 1]);        
+    end
 else
     set(handles.bootstrap_percentsampled,'backgroundcolor',0.5*[1 1 1]);
     set(handles.bootstrap_iterations,'backgroundcolor',0.5*[1 1 1]);
@@ -3206,6 +3264,10 @@ else
     set(handles.thresh_V,'backgroundcolor',0.5*[1 1 1]);
     set(handles.corrpeak_absthresh,'backgroundcolor',0.5*[1 1 1]);
     set(handles.corrpeak_ratiothresh,'backgroundcolor',0.5*[1 1 1]);
+    set(handles.ppruncertainty,'backgroundcolor',0.5*[1 1 1]);
+    set(handles.miuncertainty,'backgroundcolor',0.5*[1 1 1]);
+    set(handles.imuncertainty,'backgroundcolor',0.5*[1 1 1]);
+    set(handles.mcuncertainty,'backgroundcolor',0.5*[1 1 1]);
 end
 if str2double(A.write)==1
     set(handles.outputbasename,'backgroundcolor',[1 1 1]);
@@ -5332,7 +5394,7 @@ function no_input_vel_button_Callback(hObject, eventdata, handles)
 % handles    structure with handles and user data (see GUIDATA)
 
 % Hint: get(hObject,'Value') returns toggle state of no_input_vel_button
-
+PIV1
 handles.data.input_vel_type='none';
 set(hObject,'Value',1)
 set(handles.static_input_vel_button,'Value',0)

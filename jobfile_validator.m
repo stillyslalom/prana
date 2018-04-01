@@ -171,12 +171,23 @@ end
 %does the job file have the ability to validate based on correlation peaks
 if ~isfield(Data.PIV0,'corrpeaktest')
     for pass=0:str2double(Data.passes)
+        eval(['Data.PIV',num2str(pass),'.uncertaintyestimate=''0'';']);
+        eval(['Data.PIV',num2str(pass),'.ppruncertainty=''0'';']);
+        eval(['Data.PIV',num2str(pass),'.miuncertainty=''0'';']);
+        eval(['Data.PIV',num2str(pass),'.imuncertainty=''0'';']);
+        eval(['Data.PIV',num2str(pass),'.mcuncertainty=''0'';']);
+        
+    end
+end
+
+%does the job file have the ability to estimate uncertainty
+if ~isfield(Data.PIV0,'corrpeaktest')
+    for pass=0:str2double(Data.passes)
         eval(['Data.PIV',num2str(pass),'.corrpeaktest=''0'';']);
         eval(['Data.PIV',num2str(pass),'.corrpeak_absthresh=''0'';']);
         eval(['Data.PIV',num2str(pass),'.corrpeak_ratiothresh=''1.2'';']);
     end
 end
-
 
 % This performs a check to see if the job files
 % contains the field 'outputpassbase' if not then it
