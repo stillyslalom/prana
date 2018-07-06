@@ -169,7 +169,7 @@ if ~isfield(Data.PIV0,'saveplane')
 end
 
 %does the job file have the ability to validate based on correlation peaks
-if ~isfield(Data.PIV0,'corrpeaktest')
+if ~isfield(Data.PIV0,'uncertaintyestimate')
     for pass=0:str2double(Data.passes)
         eval(['Data.PIV',num2str(pass),'.uncertaintyestimate=''0'';']);
         eval(['Data.PIV',num2str(pass),'.ppruncertainty=''0'';']);
