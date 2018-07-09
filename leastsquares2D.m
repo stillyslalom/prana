@@ -64,6 +64,7 @@ betasy=x(3);
 x_centroid=x(4);
 y_centroid=x(5);
 alpha = x(6);
+C=x(7);
 
 if method==3
 %     gauss_int = zeros(size(mapint_i));
@@ -85,7 +86,7 @@ if method==3
 %             abs(betasy).*(sin(alpha).*(xp(rr)-x_centroid) + cos(alpha).*(yp(rr)-y_centroid)).^2);
 %     end
     
-        gauss_int=I0*exp(-abs(betasx).*(cos(alpha).*(xp-x_centroid) - sin(alpha).*(yp-y_centroid)).^2 - ...
+        gauss_int=C+I0*exp(-abs(betasx).*(cos(alpha).*(xp-x_centroid) - sin(alpha).*(yp-y_centroid)).^2 - ...
             abs(betasy).*(sin(alpha).*(xp-x_centroid) + cos(alpha).*(yp-y_centroid)).^2);
     
     
