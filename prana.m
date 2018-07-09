@@ -205,6 +205,7 @@ function executemenu_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
     set(handles.executemenu_currentjob,'Enable','on')
     set(handles.executemenu_alljobs,'Enable','on')
+    
 else
     set(handles.executemenu_currentjob,'Enable','off')
     set(handles.executemenu_alljobs,'Enable','off')
@@ -217,6 +218,10 @@ runcurrent_Callback(hObject, eventdata, handles)
 % --- Execute Menu -> Run All Jobs ---
 function executemenu_alljobs_Callback(hObject, eventdata, handles)
 runall_Callback(hObject, eventdata, handles)
+
+% --- Execute Menu -> Compile codes ---
+function jobmenu_compile_codes_Callback(hObject, eventdata, handles)
+compile_codes_Callback(hObject, eventdata, handles)
 
 % --- Help Menu ---
 function helpmenu_Callback(hObject, eventdata, handles)
@@ -371,6 +376,11 @@ end
 % --- Run Current Job Button ---
 function runcurrent_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
+	
+	% Check for compiled codes, and compile them
+	% if they don't already exist.
+	check_compiled_codes(hObject, eventdata, handles);
+	
     Data=handles.data;
     if str2double(Data.runPIV)
         pranaPIVcode(Data);
@@ -383,6 +393,10 @@ end
 % --- Run All Jobs Button ---
 function runall_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
+	
+	% Check for compiled codes, and compile them
+	% if they don't already exist.
+	check_compiled_codes(hObject, eventdata, handles);
     
     Jlist=char(get(handles.joblist,'String'));
     eval(['handles.' Jlist(str2double(handles.Cjob),:) '=handles.data;']);
@@ -396,6 +410,43 @@ if str2double(handles.Njob)>0
             pranaPTVcode(Data)
         end
     end
+end
+
+function check_compiled_codes(hObject, eventdata, handles)
+	% File name for compiled codes
+	% mexext is a built-in matlab command.
+	compiled_code_file_name = ['whittaker_blackman.' mexext];
+	
+	% Compile the compileable codes if their compiled versions
+	% don't already exist.
+	if ~exist(compiled_code_file_name, 'file')
+		compile_codes_Callback(hObject, eventdata, handles)
+	end
+
+% --- Run Current Job Button ---
+function compile_codes_Callback(hObject, eventdata, handles)
+
+% Inform the user.
+fprintf('Compiling whittaker_blackman.c to mex file....\n');
+
+% Compile the codes using the mac command
+% Case for linux machines
+try
+    filepath = which('whittaker_blackman.c');
+    filedir  = fileparts(filepath);
+	if isunix && ~ismac
+        mex('-O','-outdir',filedir,'CFLAGS="\$CFLAGS -std=c99"',filepath)
+	else
+		% This command should work with both mac and windows.
+		mex(filepath,'-outdir',filedir);
+	end
+	
+	% Inform the user
+	fprintf(['Compiled whittaker_blackman.c to whittaker_blackman.' mexext '\n']);
+
+catch err
+	fprintf('Error compiling codes.\n');
+    disp(err.message)
 end
 
 % --- New Job Button ---
