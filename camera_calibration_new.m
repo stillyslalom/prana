@@ -655,7 +655,7 @@ I=imread(calibration_data.image_filenames{current_camera_number,current_plane_nu
 % I=imadjust(I);
 % This diplays a high contrast version of the current image
 figure(1);
-imshow(imadjust(I));
+imshow(imadjust(uint16(mean(I,3))));
 % imshow(I);
 % I(I<mean(I(:)))=0;
 
@@ -1003,7 +1003,7 @@ I=imread(calibration_data.image_filenames{current_camera_number, current_plane_n
 % I=imadjust(I);
 % This diplays a high contrast version of the current image
 figure(1);
-imshow(imadjust(I));
+imshow(imadjust(uint16(mean(I,3))));
 % imshow(I);
 % I(I<mean(I(:)))=0;
 

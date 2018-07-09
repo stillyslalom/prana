@@ -536,7 +536,11 @@ if str2double(handles.Njob)>0
         j = regexp(imname(1:i(end)-1),'\D');
         % Now looking at the first thing that is not a number excluding the
         % extension to determine the number of zeros.
-        zeros=i(end)-1-j(end);
+        if isempty(j) %no base name, just numbers
+            zeros=i(end)-1
+        else
+            zeros=i(end)-1-j(end);
+        end
         handles.data.imbase=imname(1:(i(end)-1-zeros));
         handles.data.imzeros=num2str(zeros);
         fstart=str2double(imname((i(end)-zeros):(i(end)-1)));
@@ -5110,7 +5114,11 @@ if str2double(handles.Njob)>0
         j = regexp(imname(1:i(end)-1),'\D');
         % Now looking at the first thing that is not a number excluding the
         % extension to determine the number of zeros.
-        zeros=i(end)-1-j(end);
+        if isempty(j) %no base name, just numbers
+            zeros=i(end)-1;
+        else
+            zeros=i(end)-1-j(end);
+        end
         handles.data.imbase2=imname(1:(i(end)-1-zeros));
         handles.data.imzeros=num2str(zeros);
 %         fstart=str2double(imname((i(end)-zeros):(i(end)-1)));

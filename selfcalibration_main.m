@@ -189,7 +189,7 @@ y2grid=yg+Duy./2;
 %Doing Triangulation
 
 [z1grid]= geometricTriangulation(xgrid,x2grid,ygrid,y2grid,zgrid,Dux,Duy,aXcam1,aYcam1,aXcam2,aYcam2,caldata); %ouput is the projected z world points
-keyboard;
+%keyboard;
 %Just turn grid coordinates matrices into vectors, why not use (:)?
 x=reshape(xg,a*b,1);y=reshape(yg,a*b,1);z=reshape(z1grid,a*b,1);
 
