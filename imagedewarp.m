@@ -493,9 +493,12 @@ end
 
 function F=poly_3xy_123z_2eqns(x,alldata)
 % F=poly_3xy_123z_2eqns(x,alldata)
-% this function solves for the xy object coordinates with input
-% image coordiantes alldata.XYpoint.  the resulting x vector contains
-% the (x y) object coords.  This is for S-PIV so the z coord. is 0.
+% this function calculates the residual between the xy world coordinates in
+% x and input image coordiantes alldata.XYpoint.  This is for S-PIV so the 
+% z coord. is 0.  
+% Intended for use with: 
+%  fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls)
+% or similar.
 
 % This function is called by reconstructvectorsfun.m
 
@@ -524,7 +527,11 @@ end
 
 function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 % [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
-%
+% The function solves for the XY image coordinates given xy world
+% coordinates and information about the model order and coefficients
+% This is for S-PIV so the z coord. is 0.
+
+
 
 % Writen by M. Brady
 % Edited and Commented by S. Raben
