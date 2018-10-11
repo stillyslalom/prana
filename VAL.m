@@ -73,7 +73,7 @@ if Corrpeakswitch
     %ones for the third peak (peak 3 will always fail ratio validation)
     PR = cat(3,C(:,:,1:2)./C(:,:,2:3),ones(size(C(:,:,1))));
 else
-    PR = ones(size(C(:,:,1)));
+    PR = ones(size(C));
 end  
 
 Uval=U(:,:,1);Vval=V(:,:,1);Evalval=Eval(:,:,1);
