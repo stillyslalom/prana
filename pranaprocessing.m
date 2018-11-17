@@ -170,7 +170,13 @@ numDefPasses    = zeros(P,1); % This stores the number of interative deform pass
 %directory named imDeform/?
 SaveIMdeform = str2double(Data.SaveIMdeform);
 
-
+% initializing uncertainty options
+ppruncertainty=zeros(P,1);
+miuncertainty=zeros(P,1);
+imuncertainty=zeros(P,1);
+mcuncertainty=zeros(P,1);
+uncertainty2D=0;
+SNRmetric=0;
 
 %read data info for each pass
 for e=1:P
@@ -259,6 +265,28 @@ for e=1:P
         Valoptions(e).Peakratio_thresh  = 0;
     end
     
+    % checking if uncertainty options are checked
+    if ischar(A.ppruncertainty)
+        ppruncertainty(e)=str2num(A.ppruncertainty);
+    else
+        ppruncertainty(e)=A.ppruncertainty;
+    end
+    if ischar(A.miuncertainty)
+        miuncertainty(e)=str2num(A.miuncertainty);
+    else
+        miuncertainty(e)=A.miuncertainty;
+    end
+    if ischar(A.imuncertainty)
+        imuncertainty(e)=str2num(A.imuncertainty);
+    else
+        imuncertainty(e)=A.imuncertainty;
+    end
+    if ischar(A.mcuncertainty)
+        mcuncertainty(e)=str2num(A.mcuncertainty);
+    else
+        mcuncertainty(e)=A.mcuncertainty;
+    end
+    
     
     extrapeaks(e)=str2double(A.valextrapeaks);
     
@@ -273,6 +301,11 @@ for e=1:P
     wbase(e,:)={A.outbase};
     
 end
+
+uncertainty.ppruncertainty=ppruncertainty;
+uncertainty.miuncertainty=miuncertainty;
+uncertainty.imuncertainty=imuncertainty;
+uncertainty.mcuncertainty=mcuncertainty;
 
 % load dynamic mask and flip coordinates
 if strcmp(Data.masktype,'dynamic')
@@ -642,7 +675,82 @@ switch char(M)
                 if (e~=1 || defloop~=1 || VelInputFile) && ~isempty(regexpi(M,'Deform','once'))          %then don't offset windows, images already deformed
                     %if Corr(e)<4
                     if ~strcmpi(Corr{e},'SPC')
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0));
+%                         keyboard;
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty,e);
+                        
+                        if uncertainty.imuncertainty(e)==1
+                            % Perform image matching uncertainty estimation for
+                            % window deformation pass
+                            %First deform the images based on current
+                            %velocity estimate Uc,Vc,
+                            
+%                             %convert to matrix if necessary
+%                             if size(X,2)==1
+%                                 [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
+%                             end
+                            
+                            %reshape from list of grid points to matrix
+                            Xt=reshape(X,[S(1),S(2)]);
+                            Yt=reshape(Y,[S(1),S(2)]);
+                            Ut=reshape(Uc(:,1),[S(1),S(2)]);
+                            Vt=reshape(Vc(:,1),[S(1),S(2)]);
+                            
+                            %remove nans from data, replace with zeros
+%                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
+                            
+                            %velocity interpolation -
+                            %resample U(X,Y) and V(X,Y) onto UI(XI,YI) and
+                            %VI(XI,YI) where XI and YI are a list of every
+                            %pixel in the image plane. Velinterp is the type of
+                            %interpolation to use.
+                            % We have previously made sure XI and YI correspond
+                            % to the vector positions of the pixel centers by
+                            % shifting by -0.5.
+                            UIt = VFinterp(Xt,Yt,Ut,XI,YI,Velinterp);
+                            VIt = VFinterp(Xt,Yt,Vt,XI,YI,Velinterp);
+                            
+                            XD1t = XI-UIt/2 ;
+                            YD1t = YI-VIt/2;
+                            XD2t = XI+UIt/2;
+                            YD2t = YI+VIt/2;
+                            
+                            % Preallocate memory for deformed images.
+                            im1dt = zeros(size(im1),imClass);
+                            im2dt = zeros(size(im2),imClass);
+                            
+                            % Deform images according to the interpolated velocity fields
+                            for k = 1:nChannels % Loop over all of the color channels in the image
+                                if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+                                    
+                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                                    
+                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic', 0);
+                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic', 0);
+                                    
+                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                    bsplDegree = 7;  %order of the b-spline (0-7)
+                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1+0.5, YD1+0.5, 0);
+                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
+                                end
+                            end
+                            
+                            
+                            % Run image matching on deformed images
+                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                            uncertainty2D.Uimx=Uimx;
+                            uncertainty2D.Uimy=Uimy;
+                            uncertainty2D.Nump=Nump;
+                        else
+                            uncertainty2D.Uimx=zeros(size(X));
+                            uncertainty2D.Uimy=zeros(size(X));
+                            uncertainty2D.Nump=zeros(size(X));
+                        end
+                        
                         if strcmpi(M,'ForwardDeform')
                             % use coordinate system for deformed second
                             % frame to estimate deformation tensor and
@@ -788,13 +896,27 @@ switch char(M)
                         if any(isnan(Ub(Eval>=0)))
                             keyboard
                         end
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty,e,Ub(Eval>=0),Vb(Eval>=0));
+                        
+                        if uncertainty.imuncertainty(e)==1
+                            % Perform image matching uncertainty estimation for
+                            % first pass
+                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
+                            uncertainty2D.Uimx=Uimx;
+                            uncertainty2D.Uimy=Uimy;
+                            uncertainty2D.Nump=Nump;
+                        else
+                            uncertainty2D.Uimx=zeros(size(X));
+                            uncertainty2D.Uimy=zeros(size(X));
+                            uncertainty2D.Nump=zeros(size(X));
+                        end
+    
                     else
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
                     end
                 end
-                
+               
                 %Where Eval<0, no correlation was performed and Uc, etc are
                 %missing values.  Use Eval to fill in complete matrices U,V
                 %over all grid points X,Y.
@@ -845,6 +967,60 @@ switch char(M)
                         Dval=[];
                     end
                 end
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %---- This section is for Uncertainty value conversion to
+                %matrix and MC method gradient correction---------%
+                uncertainty2D.Upprx=reshape(uncertainty2D.Upprx,[S(1),S(2)]);
+                uncertainty2D.Uppry=reshape(uncertainty2D.Uppry,[S(1),S(2)]);
+                uncertainty2D.UpprxLB=reshape(uncertainty2D.UpprxLB,[S(1),S(2)]);
+                uncertainty2D.UppryLB=reshape(uncertainty2D.UppryLB,[S(1),S(2)]);
+                uncertainty2D.UpprxUB=reshape(uncertainty2D.UpprxUB,[S(1),S(2)]);
+                uncertainty2D.UppryUB=reshape(uncertainty2D.UppryUB,[S(1),S(2)]);
+                uncertainty2D.UmixLB=reshape(uncertainty2D.UmixLB,[S(1),S(2)]);
+                uncertainty2D.UmiyLB=reshape(uncertainty2D.UmiyLB,[S(1),S(2)]);
+                uncertainty2D.UmixUB=reshape(uncertainty2D.UmixUB,[S(1),S(2)]);
+                uncertainty2D.UmiyUB=reshape(uncertainty2D.UmiyUB,[S(1),S(2)]);
+                uncertainty2D.Autod=reshape(uncertainty2D.Autod,[S(1),S(2)]);
+                uncertainty2D.Ixx=reshape(uncertainty2D.Ixx,[S(1),S(2)]);
+                uncertainty2D.Iyy=reshape(uncertainty2D.Iyy,[S(1),S(2)]);
+                uncertainty2D.biasx=reshape(uncertainty2D.biasx,[S(1),S(2)]);
+                uncertainty2D.biasy=reshape(uncertainty2D.biasy,[S(1),S(2)]);
+                uncertainty2D.Neff=reshape(uncertainty2D.Neff,[S(1),S(2)]);
+                uncertainty2D.Uimx=reshape(uncertainty2D.Uimx,[S(1),S(2)]);
+                uncertainty2D.Uimy=reshape(uncertainty2D.Uimy,[S(1),S(2)]);
+                uncertainty2D.Nump=reshape(uncertainty2D.Nump,[S(1),S(2)]);
+                
+                SNRmetric.PPR=reshape(SNRmetric.PPR,[S(1),S(2)]);
+                SNRmetric.MI=reshape(SNRmetric.MI,[S(1),S(2)]);
+                
+                %Gradient correction for MC method
+                if uncertainty.mcuncertainty(e)==1
+                    % Get the velocity field in matrix form
+                    Utemp=reshape(Uval,[S(1),S(2)]);
+                    Vtemp=reshape(Vval,[S(1),S(2)]);
+                    % Calculate gradient using second order central
+                    % difference
+%                     keyboard;
+                    Udiff=socdiff(Utemp,Gres(e,1),1);
+                    Vdiff=socdiff(Vtemp,Gres(e,2),2);
+                    
+                    %Gradient correction using velocity gradient field Udiff and Vdiff
+                    Ixxt= real(sqrt(uncertainty2D.Ixx.^2 - (uncertainty2D.Autod.^2/16).*(Udiff).^2 ));
+                    Iyyt= real(sqrt(uncertainty2D.Iyy.^2 - (uncertainty2D.Autod.^2/16).*(Vdiff).^2 ));
+                    
+                    
+                    %MC uncertainty after scaling and bias correction
+                    uncertainty2D.MCx=sqrt(uncertainty2D.biasx.^2+(Ixxt.^2)./uncertainty2D.Neff);
+                    uncertainty2D.MCy=sqrt(uncertainty2D.biasy.^2+(Iyyt.^2)./uncertainty2D.Neff);
+                else
+                    uncertainty2D.MCx=zeros(S(1),S(2));
+                    uncertainty2D.MCy=zeros(S(1),S(2));
+                end
+                
+%                 keyboard;
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
                 % --- Iterative Deformation Check ---
                 % This block checks too see if the deformation has
@@ -962,9 +1138,9 @@ switch char(M)
                     
                     if str2double(Data.multiplematout)
                         if ~isempty(regexpi(M,'Deform','once'))
-                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','numDefPasses')
+                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','numDefPasses','uncertainty2D','SNRmetric')
                         else
-                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di')
+                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','uncertainty2D','SNRmetric')
                         end
                     end
                     % This saves the correlation planes if that selection
