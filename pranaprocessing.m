@@ -274,6 +274,12 @@ for e=1:P
     
 end
 
+% load dynamic mask and flip coordinates
+if strcmp(Data.masktype,'dynamic')
+    q=1;
+    mask = cast(imread([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))]),imClass);
+    mask = flipud(mask);
+end
 
 maskSize=size(mask);
 maskSize(3)=size(mask,3);
