@@ -413,20 +413,21 @@ if strcmp(dewarpmethod,'Willert')
             %get current frame number
             k=flist(n)
             
-            IMLi= im2double(imread(fullfile(dir1,sprintf(istring1,base1,k))));
-            IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            %reading recorded images
+            IMLi= (imread(fullfile(dir1,sprintf(istring1,base1,k))));
+            %IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            IMRi= (imread(fullfile(dir2,sprintf(istring1,base2,k))));
             
             incl=class(IMLi);
             %flipping images
-            IMLi=IMLi(end:-1:1,:);
-            IMRi=IMRi(end:-1:1,:);
+            IMLi=double(IMLi(end:-1:1,:));
+            IMRi=double(IMRi(end:-1:1,:));
             %Interpolating on a common grid
             %sincBlackmanInterp2 assumes images are on grid [1 NX] and [1 NY]
-            IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
-            IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
-            
-            %             IMLo=double((interp2(x1,y1,IMLi, Xgrid1, Ygrid1, 'spline',0)));
-            %             IMRo=double((interp2(x1,y1,IMRi, Xgrid2, Ygrid2, 'spline',0)));
+%             IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
+%             IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
+            IMLo=((interp2(IMLi, Xgrid1, Ygrid1, 'cubic',0)));
+            IMRo=((interp2(IMRi, Xgrid2, Ygrid2, 'cubic',0)));
             
             
             %  keyboard;
