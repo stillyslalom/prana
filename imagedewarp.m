@@ -190,23 +190,29 @@ x0=[1 1];           % initial guess for solver
 
 fprintf('Computing overlapping area...\n');
 
-bottom1X=linspace(X1points(1),X1points(2),Jmax1)';
-top1X=linspace(X1points(3),X1points(4),Jmax1)';
-left1X=X1points(1)*ones(1,Imax1)';
-right1X=X1points(2)*ones(1,Imax1)';
-bottom1Y=Y1points(1)*ones(1,Jmax1)';
-top1Y=Y1points(3)*ones(1,Jmax1)';
-left1Y=linspace(Y1points(1),Y1points(3),Imax1)';
-right1Y=linspace(Y1points(2),Y1points(4),Imax1)';
+%how many points along each edge to interpolate
+NJ1 = 10; %Jmax1; %points in x in original image
+NI1 = 10; %Imax1; %points in y in original image
+NJ2 = 10; %Jmax2; %points in x in original image
+NI2 = 10; %Imax2; %points in y in original image
 
-bottom2X=linspace(X2points(1),X2points(2),Jmax2)';
-top2X=linspace(X2points(3),X2points(4),Jmax2)';
-left2X=X2points(1)*ones(1,Imax2)';
-right2X=X2points(2)*ones(1,Imax2)';
-bottom2Y=Y2points(1)*ones(1,Jmax2)';
-top2Y=Y2points(3)*ones(1,Jmax2)';
-left2Y=linspace(Y2points(1),Y2points(3),Imax2)';
-right2Y=linspace(Y2points(2),Y2points(4),Imax2)';
+bottom1X=linspace(X1points(1),X1points(2),NJ1)';
+top1X=linspace(X1points(3),X1points(4),NJ1)';
+left1X=X1points(1)*ones(1,NI1)';
+right1X=X1points(2)*ones(1,NI1)';
+bottom1Y=Y1points(1)*ones(1,NJ1)';
+top1Y=Y1points(3)*ones(1,NJ1)';
+left1Y=linspace(Y1points(1),Y1points(3),NI1)';
+right1Y=linspace(Y1points(2),Y1points(4),NI1)';
+
+bottom2X=linspace(X2points(1),X2points(2),NJ2)';
+top2X=linspace(X2points(3),X2points(4),NJ2)';
+left2X=X2points(1)*ones(1,NI2)';
+right2X=X2points(2)*ones(1,NI2)';
+bottom2Y=Y2points(1)*ones(1,NJ2)';
+top2Y=Y2points(3)*ones(1,NJ2)';
+left2Y=linspace(Y2points(1),Y2points(3),NI2)';
+right2Y=linspace(Y2points(2),Y2points(4),NI2)';
 
 %keyboard;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -216,32 +222,32 @@ right2Y=linspace(Y2points(2),Y2points(4),Imax2)';
 alldata.aX=aXcam1';
 alldata.aY=aYcam1';
 
-bottom1xy = zeros(2,Jmax1);
-top1xy    = zeros(2,Jmax1);
-points=[bottom1X bottom1Y];
-for k=1:Jmax1
-    alldata.XYpoint=points(k,:)';
+bottom1xy = zeros(2,NJ1);
+top1xy    = zeros(2,NJ1);
+bottom1XY=[bottom1X bottom1Y]';
+for k=1:NJ1
+    alldata.XYpoint=bottom1XY(:,k);
     % solve for x,y for camera 1
     [bottom1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
-points=[top1X top1Y];
-for k=1:Jmax1
-    alldata.XYpoint=points(k,:)';
+top1XY=[top1X top1Y]';
+for k=1:NJ1
+    alldata.XYpoint=top1XY(:,k);
     % solve for x,y for camera 1
     [top1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
 
-left1xy  = zeros(2,Imax1);
-right1xy = zeros(2,Imax1);
-points=[left1X left1Y];
-for k=1:Imax1
-    alldata.XYpoint=points(k,:)';
+left1xy  = zeros(2,NI1);
+right1xy = zeros(2,NI1);
+left1XY=[left1X left1Y]';
+for k=1:NI1
+    alldata.XYpoint=left1XY(:,k);
     % solve for x,y for camera 1
     [left1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
-points=[right1X right1Y];
-for k=1:Imax1
-    alldata.XYpoint=points(k,:)';
+right1XY=[right1X right1Y]';
+for k=1:NI1
+    alldata.XYpoint=right1XY(:,k);
     % solve for x,y for camera 1
     [right1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
@@ -253,32 +259,32 @@ end
 alldata.aX=aXcam2';
 alldata.aY=aYcam2';
 
-bottom2xy = zeros(2,Jmax2);
-top2xy    = zeros(2,Jmax2);
-points=[bottom2X bottom2Y];
-for k=1:Jmax2
-    alldata.XYpoint=points(k,:)';
+bottom2xy = zeros(2,NJ2);
+top2xy    = zeros(2,NJ2);
+bottom2XY=[bottom2X bottom2Y]';
+for k=1:NJ2
+    alldata.XYpoint=bottom2XY(:,k);
     % solve for x,y for camera 2
     [bottom2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
-points=[top2X top2Y];
-for k=1:Jmax2
-    alldata.XYpoint=points(k,:)';
+top2XY=[top2X top2Y]';
+for k=1:NJ2
+    alldata.XYpoint=top2XY(:,k);
     % solve for x,y for camera 2
     [top2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
 
-left2xy  = zeros(2,Imax2);
-right2xy = zeros(2,Imax2);
-points=[left2X left2Y];
-for k=1:Imax2
-    alldata.XYpoint=points(k,:)';
+left2xy  = zeros(2,NI2);
+right2xy = zeros(2,NI2);
+left2XY=[left2X left2Y]';
+for k=1:NI2
+    alldata.XYpoint=left2XY(:,k);
     % solve for x,y for camera 2
     [left2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
-points=[right2X right2Y];
-for k=1:Imax2
-    alldata.XYpoint=points(k,:)';
+right2XY=[right2X right2Y]';
+for k=1:NI2
+    alldata.XYpoint=right2XY(:,k);
     % solve for x,y for camera 2
     [right2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
 end
@@ -286,18 +292,46 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % make object coordinate grid
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-xlow=max([left1xy(1,:) left2xy(1,:)]);
-xhigh=min([right1xy(1,:) right2xy(1,:)]);
-ylow=max([bottom1xy(2,:) bottom2xy(2,:)]);
-yhigh=min([top1xy(2,:) top2xy(2,:)]);
 
-%set the number of points in dewarped image to the size of Camera 1's
-%original undewarped image.
-ImaxD = Imax1; %number of points in y
-JmaxD = Jmax1; %number of points in x
+%collection of all image border points in world coordinates
+all1xy = [left1xy right1xy top1xy bottom1xy];
+all2xy = [left2xy right2xy top2xy bottom2xy];
+
+%calculate approximate pixel scaling along each border
+% results are in pixels per world unit (mm usually)
+left1scale   = norm(left1XY(:,end)  -left1XY(:,1)  ) / norm(left1xy(:,end)  -left1xy(:,1)  );
+right1scale  = norm(right1XY(:,end) -right1XY(:,1) ) / norm(right1xy(:,end) -right1xy(:,1) );
+top1scale    = norm(top1XY(:,end)   -top1XY(:,1)   ) / norm(top1xy(:,end)   -top1xy(:,1)   );
+bottom1scale = norm(bottom1XY(:,end)-bottom1XY(:,1)) / norm(bottom1xy(:,end)-bottom1xy(:,1));
+
+left2scale   = norm(left2XY(:,end)  -left2XY(:,1)  ) / norm(left2xy(:,end)  -left2xy(:,1)  );
+right2scale  = norm(right2XY(:,end) -right2XY(:,1) ) / norm(right2xy(:,end) -right2xy(:,1) );
+top2scale    = norm(top2XY(:,end)   -top2XY(:,1)   ) / norm(top2xy(:,end)   -top2xy(:,1)   );
+bottom2scale = norm(bottom2XY(:,end)-bottom2XY(:,1)) / norm(bottom2xy(:,end)-bottom2xy(:,1));
+
+%pick the highest resolution region for each image (pix/unit)
+im1scale = max([left1scale,right1scale,top1scale,bottom1scale]);
+im2scale = max([left2scale,right2scale,top2scale,bottom2scale]);
+
+%for overall dewarp, use highest resolution across both images
+dewarpscale = max([im1scale, im2scale]); %pixels/unit
+
+%find the widest extents of the original images
+xlow  = min([all1xy(1,:) all2xy(1,:)]);
+xhigh = max([all1xy(1,:) all2xy(1,:)]);
+ylow  = min([all1xy(2,:) all2xy(2,:)]);
+yhigh = max([all1xy(2,:) all2xy(2,:)]);
+
+%set the number of points in dewarped image to approximate highest
+%resolution across both images
+ImaxD = (yhigh-ylow)*dewarpscale; %number of points in y
+JmaxD = (xhigh-xlow)*dewarpscale; %number of points in x
 
 [xgrid,ygrid]=meshgrid(linspace(xlow,xhigh,JmaxD),linspace(ylow,yhigh,ImaxD));
+
+% set zgrid to depth of current level if multiplane target
 %zgrid=zeros(size(xgrid));
+
 overplots=1;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Plot fig to check overlap
@@ -305,17 +339,17 @@ overplots=1;
 if overplots == 1
     % use this to plot overlapping area in x,y
     figure(10);
-    H(1) = plot(bottom1xy(1,:),bottom1xy(2,:),'+');hold on;
-    plot(top1xy(1,:),top1xy(2,:),'+');hold on;
-    plot(left1xy(1,:),left1xy(2,:),'+');hold on;
-    plot(right1xy(1,:),right1xy(2,:),'+');hold on;
-    H(2) = plot(bottom2xy(1,:),bottom2xy(2,:),'o');hold on;
-    plot(top2xy(1,:),top2xy(2,:),'o');hold on;
-    plot(left2xy(1,:),left2xy(2,:),'o');hold on;
-    plot(right2xy(1,:),right2xy(2,:),'o');hold on;
+    H(1) = plot(bottom1xy(1,:),bottom1xy(2,:),'^-r');hold on;
+           plot(top1xy(1,:)   ,top1xy(2,:)   ,'v-r');hold on;
+           plot(left1xy(1,:)  ,left1xy(2,:)  ,'>-r');hold on;
+           plot(right1xy(1,:) ,right1xy(2,:) ,'<-r');hold on;
+    H(2) = plot(bottom2xy(1,:),bottom2xy(2,:),'^-b');hold on;
+           plot(top2xy(1,:)   ,top2xy(2,:)   ,'v-b');hold on;
+           plot(left2xy(1,:)  ,left2xy(2,:)  ,'>-b');hold on;
+           plot(right2xy(1,:) ,right2xy(2,:) ,'<-b');hold on;
     H(3) = plot([xlow xlow xhigh xhigh xlow],[ylow yhigh yhigh ylow ylow],'-k','LineWidth',2);hold on;
-    H2 = plot(xgrid,ygrid,'.r','MarkerSize',4);xlabel('x (mm)');ylabel('y (mm)');
-    H(4) = H2(1);
+    % H2 = plot(xgrid,ygrid,'.r','MarkerSize',4);xlabel('x (mm)');ylabel('y (mm)');
+    % H(4) = H2(1);
     title('Camera Overlap and new vector locations');
     Lstr = {'Camera 1 border','Camera 2 border','Overlap Border','Vector location'};
     legend(H,Lstr);
@@ -323,8 +357,12 @@ if overplots == 1
     %             slashlocs = find(data.outputdirectory == '/');
     %             set(gcf,'name',data.outputdirectory(slashlocs(end)+1:end))
     %         axis([-200 100 -150 250])
+    axis equal xy
     drawnow
+    hold off
+
 end
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute this grid in the IMAGE (object) plane to interpolate values
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
