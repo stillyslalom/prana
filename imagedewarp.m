@@ -453,8 +453,9 @@ if strcmp(dewarpmethod,'Willert')
             
             %keyboard;
             %JJC: why the heck are we saving them with no TIFF compression?
-            imwrite((IMLo),fullfile(dirout1,sprintf(istring1,base1,k)),'TIFF','WriteMode','overwrite','Compression','none');
-            imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k+cstep-1)),'TIFF','WriteMode','overwrite','Compression','none');
+            imwrite((IMLo),fullfile(dirout1,sprintf(istring1,base1,k)),'TIFF','WriteMode','overwrite','Compression','deflate');
+            %imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k+cstep-1)),'TIFF','WriteMode','overwrite','Compression','deflate');
+            imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k)),'TIFF','WriteMode','overwrite','Compression','deflate');
             %keyboard;
             
         end
