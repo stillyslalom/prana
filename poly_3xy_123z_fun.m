@@ -1,5 +1,5 @@
-function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
-% [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
+function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY,zgrid)
+% [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY,zgrid)
 % 
 
 % Writen by M. Brady
@@ -38,7 +38,11 @@ function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 x1=xgrid;
 x2=ygrid;
 [r,c]=size(xgrid);
-x3=zeros(r,c);
+if nargin<6
+    x3=zeros(r,c);
+else
+    x3=zgrid;
+end
 
 if orderz==1                % cubic xy, linear z
     
