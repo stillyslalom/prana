@@ -403,9 +403,15 @@ if strcmp(dewarpmethod,'Willert')
     fprintf('Dewarping Images...\n');
     dewarpflag=1; % added dewarpflag which is by default true but one can make it 0 to not run it if required
     if dewarpflag==1
-        matlabpool; % calling matlabpool for dewarping in parallel but in future versions it should be parpool
-        parfor k=fstart:fend+1
-            %reading recorded images
+        %matlabpool; % calling matlabpool for dewarping in parallel but in future versions it should be parpool
+        %parfor k=fstart:fend+1
+        %parfor iteration variable must be consecutive integers, so create
+        %a list variable to index into
+        flist = [fstart:fstep:fend,(fstart:fstep:fend)+cstep];  
+        M=0;
+        parfor (n=1:length(flist),M)
+            %get current frame number
+            k=flist(n)
             
             IMLi= im2double(imread(fullfile(dir1,sprintf(istring1,base1,k))));
             IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
@@ -451,7 +457,7 @@ if strcmp(dewarpmethod,'Willert')
             %keyboard;
             
         end
-        matlabpool close;
+        %matlabpool close;
     end
 end
 
