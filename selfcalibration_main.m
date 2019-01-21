@@ -278,12 +278,18 @@ Rotz = [cos(gamma/2) -sin(gamma/2) 0 ; sin(gamma/2) cos(gamma/2) 0; 0 0 1];
 
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
+%not sure why, but these input statements don't seem to be writing the
+%prompt to the command window.  Move text to separate fprintf command
+fprintf('Do you want to apply the Z-rotation? (Y/N):')
+refineZR= input('','s');
+% refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
 
 
 if strcmpi(refineZR,'Y')
     reftrue=1;
-    refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
+    fprintf('Do you want to apply the X-Y shift? (Y/N):')
+    refineXY= input('','s');
+    % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
 else
     reftrue=0;
     refineXY = 'N';

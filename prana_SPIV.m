@@ -854,7 +854,7 @@ caldata=guiprops.caljob;
 selfcaljob=guiprops.selfcaljob;
 
 reftrue=1;
- while(reftrue~=0)
+while(reftrue~=0)
      
  [caldatamod]=selfcalibration_main(caldata,selfcaljob);
  % Updating calibration data after each iteration of self calibration
@@ -868,7 +868,11 @@ reftrue=1;
  clear caldatamod;
  %[caldatamod]=selfcalibration_v1(caldata,selfcaljob);
  
-  refine= input('Do you want to Refine? (Y/N):','s');
+ %not sure why, but these input statements don't seem to be writing the
+ %prompt to the command window.  Move text to separate fprintf command
+  fprintf('Do you want to Refine? (Y/N):')
+  refine= input('','s');
+%   refine= input('Do you want to Refine? (Y/N):','s');
   
   if strcmpi(refine,'Y')
       
@@ -879,8 +883,8 @@ reftrue=1;
       reftrue=0;
   end
  
- end
- guiprops.caljob=caldata;
+end
+guiprops.caljob=caldata;
 guidata(hObject,guiprops);
 
 end
