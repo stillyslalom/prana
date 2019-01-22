@@ -309,7 +309,7 @@ for ii=1:number_of_cameras;
     end;
 end;
 
-
+tic,fprintf('finding grid points ...')
 % This saves the calibration data structure to the harddrive
 %save(filename_save, 'calibration_data', 'calibration_plane_data');
 
@@ -381,7 +381,7 @@ end
 % % This creates camera calibration files for each camera
 % save_calibration_data(calibration_data);
 
-
+fprintf('%g\n',toc)
 
 function save_calibration_data(calibration_data)
 % This function saves the calibration data into a structure containing only
