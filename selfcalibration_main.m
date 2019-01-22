@@ -75,7 +75,7 @@ aYcam2=caldata.aYcam2;
 
 % Doing dewarping and cross correlation to calculate the disparity map (Dux and Duy).
 %imagelist=selfcaljob;
-[outputdirlist,dewarp_grid,~]=imagedewarp(caldata,'Willert',selfcaljob);
+[outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,'Willert',selfcaljob);
 
 %keyboard;
 

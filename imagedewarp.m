@@ -389,8 +389,11 @@ if strcmp(dewarpmethod,'Willert')
     
     %Both numerator and denominator need to be (Max - Min), see Soloff
     %below for analogous construction
-    scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(Jmax1-1);
-    scaling.yscale =(max(ygrid(:))-min(ygrid(:)))/(Imax1-1);
+    %JJC: denominator was Jmax1, Imax1. I think this was a holdover from
+    %when dewarped image size was set to match input images. Change to be
+    %new calculated size of dewarped images
+    scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(JmaxD-1);
+    scaling.yscale =(max(ygrid(:))-min(ygrid(:)))/(ImaxD-1);
 elseif strcmp(dewarpmethod,'Soloff')
     %JJC: this was already correct, see above
     scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(max(x1(:))-min(x1(:)));
