@@ -373,7 +373,8 @@ for ii=1:number_of_cameras;
     calibration_data.x_world_full{ii}=x_world_full;
     calibration_data.y_world_full{ii}=y_world_full;
     calibration_data.z_world_full{ii}=z_world_full;
-end;
+end
+
 % This saves the calibration data structure to the harddrive
 %save(filename_save,'calibration_data','calibration_plane_data');
 
@@ -833,19 +834,21 @@ while true;
         L=subpixel_grid_point_diameter*sqrt(2*pi)/2;
 
         % This calculates the subpixel location of the current grid point
-        [X_Subpixel_Search,Y_Subpixel_Search,~]=subpix_region(I,X_Centroid_Search,Y_Centroid_Search,subpixel_grid_point_diameter/2);
+        [X_Subpixel_Search,Y_Subpixel_Search,res_Subpixel_Search]=subpix_region(I,X_Centroid_Search,Y_Centroid_Search,subpixel_grid_point_diameter/2);
         
         % This checks whether the subpixel approximation is within a
         % specified distance of the centroid estimate
-        if norm([X_Subpixel_Search-X_Centroid_Search,Y_Subpixel_Search-Y_Centroid_Search])>0.5*subpixel_grid_point_diameter;
-            
+        if (norm([X_Subpixel_Search-X_Centroid_Search,Y_Subpixel_Search-Y_Centroid_Search])>0.5*subpixel_grid_point_diameter) ...
+           || (abs(res_Subpixel_Search) > 0.75) ... %threshold is empirical, 1.0 isn't constraining enough, maybe 0.9 would be better?
+           || ~isfinite(res_Subpixel_Search) %throw out NaN or +/-Inf
+       
             hold on;
             plot(X_Subpixel_Search,Y_Subpixel_Search,'s','Color',[0.1,0.7,0],'Markersize',18,'Linewidth',2);
             hold off;
             
             % This skips to the next loop
             continue;
-        end;
+        end
 
         % This adds the current grid point to the vectors of known grid
         % point locations
@@ -1173,9 +1176,11 @@ for ii=1:length(XC);
     XC_Sub(ii)=P(1);
     YC_Sub(ii)=P(2);
     % This saves the residual of the fit to the residual vector
-    res(ii)=res_temp;
+    %calculate a normalized residual for comparison purposes
+    res(ii)=sqrt(res_temp/numel(I_ROI))/abs(v_light-v_dark);
+    sqrt(res_temp/numel(I_ROI))/abs(v_light-v_dark)
     % This is a pause for breaking purposes
-    pause(0.001);
+    pause(1e-3);
 end;
 
 
@@ -1224,6 +1229,8 @@ p=polyfit(v_index,v_sort,5);
 % The inflection points occur where the second derivative equals zero
 % or alternatively at
 r=roots([20*p(1),12*p(2),6*p(3),2*p(4)]);
+% Sometimes we end up with a double imaginary root, so just use the real
+r = real(r);
 % The two inflection points of interest are the minimum and maximum
 % values
 r_min=min(r);
