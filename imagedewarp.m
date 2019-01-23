@@ -468,6 +468,7 @@ end
 
 end
 
+%{
 function F=poly_3xy_123z_2eqns(x,alldata)
 % F=poly_3xy_123z_2eqns(x,alldata)
 % this function solves for the xy object coordinates with input
@@ -498,7 +499,9 @@ end
 
 F=Fpoly;
 end
+%}
 
+%{
 function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 % [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 %
@@ -544,4 +547,5 @@ else             % pinhole
     
 end
 end
+%}
 
