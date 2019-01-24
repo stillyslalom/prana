@@ -1962,7 +1962,7 @@ end
 % --- Correlation Type Drop-Down Menu ---
 function correlationtype_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC'};
+    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC','WFTLSA'};
     eval(['handles.data.PIV' handles.data.cpass '.corr = ctype{get(hObject,''Value'')};'])
     N=handles.data.cpass;
     A=eval(['handles.data.PIV' num2str(N)]);
@@ -1972,7 +1972,11 @@ if str2double(handles.Njob)>0
         set(handles.rpcdiameter,'backgroundcolor',[1 1 1]);
     end
     if strcmpi(A.corr,'FWC')
-        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        if str2double(get(handles.frac_filter_weight,'String'))==0
+            set(handles.frac_filter_weight,'backgroundcolor',[1 0.5 0]);
+        else
+            set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        end
         set(handles.rpcdiameter,'backgroundcolor',0.5*[1 1 1]);
     else
         set(handles.frac_filter_weight,'backgroundcolor',0.5*[1 1 1]);
@@ -2001,6 +2005,7 @@ if str2double(handles.Njob)>0
     else
         set(handles.autowinsizecheckbox,'enable','on');
     end
+    %
     set(handles.correlationtype,'backgroundcolor',[1 1 1]);
     handles=set_PIVcontrols(handles);
     guidata(hObject,handles)
@@ -2050,7 +2055,7 @@ function frac_filter_weight_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
     eval(['handles.data.PIV' handles.data.cpass '.frac_filt = get(hObject,''String'');'])
     guidata(hObject,handles)
-    if get(handles.correlationtype,'Value')==4
+    if get(handles.correlationtype,'Value')==5
         if str2double(get(hObject,'String'))==0
             set(hObject,'backgroundcolor',[1 0.5 0]);
         else
@@ -2060,6 +2065,7 @@ if str2double(handles.Njob)>0
         set(hObject,'backgroundcolor',0.5*[1 1 1]);
     end
 end
+
 function frac_filter_weight_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -3359,7 +3365,11 @@ if any(get(handles.correlationtype,'Value')==[2 6]) %check diameter if RPC, SPC
     set(handles.frac_filter_weight,'backgroundcolor',0.5.*[1 1 1]);
 else
     if get(handles.correlationtype,'Value')==5
-        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        if str2double(get(handles.frac_filter_weight,'String'))==0
+            set(handles.frac_filter_weight,'backgroundcolor',[1 0.5 0]);
+        else
+            set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        end
     else
         set(handles.frac_filter_weight,'backgroundcolor',0.5.*[1 1 1]);
     end
