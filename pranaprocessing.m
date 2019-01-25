@@ -171,10 +171,12 @@ numDefPasses    = zeros(P,1); % This stores the number of interative deform pass
 SaveIMdeform = str2double(Data.SaveIMdeform);
 
 % initializing uncertainty options
-ppruncertainty=zeros(P,1);
-miuncertainty=zeros(P,1);
-imuncertainty=zeros(P,1);
-mcuncertainty=zeros(P,1);
+uncertainty.uncertaintyestimate = 0;
+uncertainty.ppruncertainty  = 0;
+uncertainty.miuncertainty   = 0;
+uncertainty.imuncertainty   = 0;
+uncertainty.mcuncertainty   = 0;
+uncertainty = repmat(uncertainty,[P,1]);
 uncertainty2D=0;
 SNRmetric=0;
 
@@ -266,27 +268,32 @@ for e=1:P
     end
     
     % checking if uncertainty options are checked
-    if ischar(A.ppruncertainty)
-        ppruncertainty(e)=str2num(A.ppruncertainty);
+    % leave all methods set to 0 (default set above) if uncertainty 
+    % estimates are turned off
+    if uncertainty(e).uncertaintyestimate
+        if ischar(A.ppruncertainty)
+            uncertainty(e).ppruncertainty=str2num(A.ppruncertainty);
+        else
+            uncertainty(e).ppruncertainty=A.ppruncertainty;
+        end
+        if ischar(A.miuncertainty)
+            uncertainty(e).miuncertainty=str2num(A.miuncertainty);
+        else
+            uncertainty(e).miuncertainty=A.miuncertainty;
+        end
+        if ischar(A.imuncertainty)
+            uncertainty(e).imuncertainty=str2num(A.imuncertainty);
+        else
+            uncertainty(e).imuncertainty=A.imuncertainty;
+        end
+        if ischar(A.mcuncertainty)
+            uncertainty(e).mcuncertainty=str2num(A.mcuncertainty);
+        else
+            uncertainty(e).mcuncertainty=A.mcuncertainty;
+        end
     else
-        ppruncertainty(e)=A.ppruncertainty;
+        %even if the method is on, don't do the work
     end
-    if ischar(A.miuncertainty)
-        miuncertainty(e)=str2num(A.miuncertainty);
-    else
-        miuncertainty(e)=A.miuncertainty;
-    end
-    if ischar(A.imuncertainty)
-        imuncertainty(e)=str2num(A.imuncertainty);
-    else
-        imuncertainty(e)=A.imuncertainty;
-    end
-    if ischar(A.mcuncertainty)
-        mcuncertainty(e)=str2num(A.mcuncertainty);
-    else
-        mcuncertainty(e)=A.mcuncertainty;
-    end
-    
     
     extrapeaks(e)=str2double(A.valextrapeaks);
     
@@ -301,11 +308,6 @@ for e=1:P
     wbase(e,:)={A.outbase};
     
 end
-
-uncertainty.ppruncertainty=ppruncertainty;
-uncertainty.miuncertainty=miuncertainty;
-uncertainty.imuncertainty=imuncertainty;
-uncertainty.mcuncertainty=mcuncertainty;
 
 % load dynamic mask and flip coordinates
 if strcmp(Data.masktype,'dynamic')
@@ -676,9 +678,9 @@ switch char(M)
                     %if Corr(e)<4
                     if ~strcmpi(Corr{e},'SPC')
 %                         keyboard;
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty,e);
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
                         
-                        if uncertainty.imuncertainty(e)==1
+                        if uncertainty(e).imuncertainty==1
                             % Perform image matching uncertainty estimation for
                             % window deformation pass
                             %First deform the images based on current
@@ -692,18 +694,33 @@ switch char(M)
                             %reshape from list of grid points to matrix
                             Xt=reshape(X,[S(1),S(2)]);
                             Yt=reshape(Y,[S(1),S(2)]);
-                            Ut=reshape(Uc(:,1),[S(1),S(2)]);
-                            Vt=reshape(Vc(:,1),[S(1),S(2)]);
+                            % Ut=reshape(Uc(:,1),[S(1),S(2)]);
+                            % Vt=reshape(Vc(:,1),[S(1),S(2)]);
+                            %Where Eval<0, no correlation was performed and Uc, etc are
+                            %missing values.  Use Eval to fill in complete matrices U,V
+                            %over all grid points X,Y.
+                            if find_extrapeaks
+                                Ut=zeros(size(X,1),3,imClass);
+                                Vt=zeros(size(X,1),3,imClass);
+                                Ut(repmat(Eval>=0,[1 3]))=Uc;
+                                Vt(repmat(Eval>=0,[1 3]))=Vc;
+                            else
+                                Ut=zeros(size(X),imClass);
+                                Vt=zeros(size(X),imClass);
+                                Ut(Eval>=0)=Uc;
+                                Vt(Eval>=0)=Vc;
+                            end
+
                             
                             %remove nans from data, replace with zeros
 %                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
                             
                             %velocity interpolation -
                             %resample U(X,Y) and V(X,Y) onto UI(XI,YI) and
-                            %VI(XI,YI) where XI and YI are a list of every
+                            %VI(XIt,YIt) where XIt and YIt are a list of every
                             %pixel in the image plane. Velinterp is the type of
                             %interpolation to use.
-                            % We have previously made sure XI and YI correspond
+                            % We have previously made sure XIt and YIt correspond
                             % to the vector positions of the pixel centers by
                             % shifting by -0.5.
                             UIt = VFinterp(Xt,Yt,Ut,XI,YI,Velinterp);
@@ -896,9 +913,9 @@ switch char(M)
                         if any(isnan(Ub(Eval>=0)))
                             keyboard
                         end
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty,e,Ub(Eval>=0),Vb(Eval>=0));
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
                         
-                        if uncertainty.imuncertainty(e)==1
+                        if uncertainty(e).imuncertainty==1
                             % Perform image matching uncertainty estimation for
                             % first pass
                             [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
@@ -995,7 +1012,7 @@ switch char(M)
                 SNRmetric.MI=reshape(SNRmetric.MI,[S(1),S(2)]);
                 
                 %Gradient correction for MC method
-                if uncertainty.mcuncertainty(e)==1
+                if uncertainty(e).mcuncertainty==1
                     % Get the velocity field in matrix form
                     Utemp=reshape(Uval,[S(1),S(2)]);
                     Vtemp=reshape(Vval,[S(1),S(2)]);

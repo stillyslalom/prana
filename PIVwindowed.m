@@ -1,4 +1,4 @@
-function [X,Y,U,V,C,Dia,Corrplanes,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,tcorr,window,res,zpad,D,Zeromean,Peaklocator,Peakswitch,fracval,saveplane,X,Y,uncertainty,e,Uin,Vin)
+function [X,Y,U,V,C,Dia,Corrplanes,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,tcorr,window,res,zpad,D,Zeromean,Peaklocator,Peakswitch,fracval,saveplane,X,Y,uncertainty,Uin,Vin)
 % --- DPIV Correlation ---
 imClass = 'double';
 
@@ -46,7 +46,7 @@ Y=Y(:);
 Nx = window(1);
 Ny = window(2);
 
-if nargin <=17
+if nargin <=16
     Uin = zeros(length(X),1,imClass);
     Vin = zeros(length(X),1,imClass);
 end
@@ -400,7 +400,7 @@ switch upper(tcorr)
                     end
                 
                 % Evaluate uncertainty options for SCC
-                if uncertainty.ppruncertainty(e)==1
+                if uncertainty.ppruncertainty==1
                      %SNR calculation the other output arguments of Cal_SNR
                      %are Maximum peak value,PRMSR,PCE,ENTROPY
                     metric='PPR';
@@ -422,7 +422,7 @@ switch upper(tcorr)
                     
                 end
                 
-                if uncertainty.miuncertainty(e)==1
+                if uncertainty.miuncertainty==1
                     %Autocorrelations
                     P11 = f1.*conj(f1);
                     P22 = f2.*conj(f2);
@@ -458,8 +458,8 @@ switch upper(tcorr)
                     uncertainty2D.UmiyUB(n)=UyUB;
                     
                 end
-                if uncertainty.mcuncertainty(e)==1
-                    if uncertainty.miuncertainty(e)==1
+                if uncertainty.mcuncertainty==1
+                    if uncertainty.miuncertainty==1
                         MIest=SNRmetric.MI(n);
                         [Ixx,Iyy,biasx,biasy,Neff,~]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,MIest);
                         
@@ -800,7 +800,7 @@ switch upper(tcorr)
                 end
                 
                  % Evaluate uncertainty options for RPC
-                if uncertainty.ppruncertainty(e)==1
+                if uncertainty.ppruncertainty==1
                      %SNR calculation the other output arguments of Cal_SNR
                      %are Maximum peak value,PRMSR,PCE,ENTROPY
                     metric='PPR';
@@ -822,7 +822,7 @@ switch upper(tcorr)
                     
                 end
                 
-                if uncertainty.miuncertainty(e)==1
+                if uncertainty.miuncertainty==1
                     %Autocorrelations
                     P11 = f1.*conj(f1);
                     P22 = f2.*conj(f2);
