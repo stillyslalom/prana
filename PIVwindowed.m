@@ -191,7 +191,7 @@ switch upper(tcorr)
                 
                 r=1;
 
-                while r<=size(im1,3);
+                while r<=size(im1,3)
                     %find the image windows
                     zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r);
                     zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r);
