@@ -495,8 +495,8 @@ switch upper(tcorr)
     %Direct Cross Correlation
     case 'DCC'
         
-        %initialize correlation tensor
-        CC = zeros(Sy,Sx,length(X),imClass);
+        % %initialize correlation tensor
+        % CC = zeros(Sy,Sx,length(X),imClass);
         
         if size(im1,3) == 3
             Gens=zeros(res(1,2)+res(2,2)-1,res(1,1)+res(2,1)-1,3,imClass);
