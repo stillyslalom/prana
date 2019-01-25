@@ -132,24 +132,35 @@ else
 end
 
 % Intializing SBRmetric and uncertainty 2D structure
-SNRmetric.PPR=zeros(length(X),1);
-SNRmetric.MI=zeros(length(X),1);
-uncertainty2D.Upprx=zeros(length(X),1);
-uncertainty2D.Uppry=zeros(length(X),1);
-uncertainty2D.UpprxLB=zeros(length(X),1);
-uncertainty2D.UppryLB=zeros(length(X),1);
-uncertainty2D.UpprxUB=zeros(length(X),1);
-uncertainty2D.UppryUB=zeros(length(X),1);
-uncertainty2D.UmixLB=zeros(length(X),1);
-uncertainty2D.UmiyLB=zeros(length(X),1);
-uncertainty2D.UmixUB=zeros(length(X),1);
-uncertainty2D.UmiyUB=zeros(length(X),1);
-uncertainty2D.Autod=zeros(length(X),1);
-uncertainty2D.Ixx=zeros(length(X),1);
-uncertainty2D.Iyy=zeros(length(X),1);
-uncertainty2D.biasx=zeros(length(X),1);
-uncertainty2D.biasy=zeros(length(X),1);
-uncertainty2D.Neff=zeros(length(X),1);
+%initialize an empty state in case no uncertainty analysis is done
+SNRmetric     = 0;
+uncertainty2D = 0;
+%to save space, initialize only the variables we will be using
+
+if uncertainty.ppruncertainty==1
+    SNRmetric.PPR=zeros(length(X),1);
+    uncertainty2D.Upprx=zeros(length(X),1);
+    uncertainty2D.Uppry=zeros(length(X),1);
+    uncertainty2D.UpprxLB=zeros(length(X),1);
+    uncertainty2D.UppryLB=zeros(length(X),1);
+    uncertainty2D.UpprxUB=zeros(length(X),1);
+    uncertainty2D.UppryUB=zeros(length(X),1);
+end
+if uncertainty.miuncertainty==1
+    SNRmetric.MI=zeros(length(X),1);
+    uncertainty2D.UmixLB=zeros(length(X),1);
+    uncertainty2D.UmiyLB=zeros(length(X),1);
+    uncertainty2D.UmixUB=zeros(length(X),1);
+    uncertainty2D.UmiyUB=zeros(length(X),1);
+    uncertainty2D.Autod=zeros(length(X),1);
+end
+if uncertainty.mcuncertainty==1
+    uncertainty2D.Ixx=zeros(length(X),1);
+    uncertainty2D.Iyy=zeros(length(X),1);
+    uncertainty2D.biasx=zeros(length(X),1);
+    uncertainty2D.biasy=zeros(length(X),1);
+    uncertainty2D.Neff=zeros(length(X),1);
+end
                     
 switch upper(tcorr)
     

@@ -763,9 +763,10 @@ switch char(M)
                             uncertainty2D.Uimy=Uimy;
                             uncertainty2D.Nump=Nump;
                         else
-                            uncertainty2D.Uimx=zeros(size(X));
-                            uncertainty2D.Uimy=zeros(size(X));
-                            uncertainty2D.Nump=zeros(size(X));
+                            %leave empty for efficiency
+                            % uncertainty2D.Uimx=zeros(size(Xc));
+                            % uncertainty2D.Uimy=zeros(size(Xc));
+                            % uncertainty2D.Nump=zeros(size(Xc));
                         end
                         
                         if strcmpi(M,'ForwardDeform')
@@ -923,9 +924,10 @@ switch char(M)
                             uncertainty2D.Uimy=Uimy;
                             uncertainty2D.Nump=Nump;
                         else
-                            uncertainty2D.Uimx=zeros(size(X));
-                            uncertainty2D.Uimy=zeros(size(X));
-                            uncertainty2D.Nump=zeros(size(X));
+                            %leave empty
+                            % uncertainty2D.Uimx=zeros(size(X));
+                            % uncertainty2D.Uimy=zeros(size(X));
+                            % uncertainty2D.Nump=zeros(size(X));
                         end
     
                     else
@@ -988,28 +990,36 @@ switch char(M)
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %---- This section is for Uncertainty value conversion to
                 %matrix and MC method gradient correction---------%
-                uncertainty2D.Upprx=reshape(uncertainty2D.Upprx,[S(1),S(2)]);
-                uncertainty2D.Uppry=reshape(uncertainty2D.Uppry,[S(1),S(2)]);
-                uncertainty2D.UpprxLB=reshape(uncertainty2D.UpprxLB,[S(1),S(2)]);
-                uncertainty2D.UppryLB=reshape(uncertainty2D.UppryLB,[S(1),S(2)]);
-                uncertainty2D.UpprxUB=reshape(uncertainty2D.UpprxUB,[S(1),S(2)]);
-                uncertainty2D.UppryUB=reshape(uncertainty2D.UppryUB,[S(1),S(2)]);
-                uncertainty2D.UmixLB=reshape(uncertainty2D.UmixLB,[S(1),S(2)]);
-                uncertainty2D.UmiyLB=reshape(uncertainty2D.UmiyLB,[S(1),S(2)]);
-                uncertainty2D.UmixUB=reshape(uncertainty2D.UmixUB,[S(1),S(2)]);
-                uncertainty2D.UmiyUB=reshape(uncertainty2D.UmiyUB,[S(1),S(2)]);
-                uncertainty2D.Autod=reshape(uncertainty2D.Autod,[S(1),S(2)]);
-                uncertainty2D.Ixx=reshape(uncertainty2D.Ixx,[S(1),S(2)]);
-                uncertainty2D.Iyy=reshape(uncertainty2D.Iyy,[S(1),S(2)]);
-                uncertainty2D.biasx=reshape(uncertainty2D.biasx,[S(1),S(2)]);
-                uncertainty2D.biasy=reshape(uncertainty2D.biasy,[S(1),S(2)]);
-                uncertainty2D.Neff=reshape(uncertainty2D.Neff,[S(1),S(2)]);
-                uncertainty2D.Uimx=reshape(uncertainty2D.Uimx,[S(1),S(2)]);
-                uncertainty2D.Uimy=reshape(uncertainty2D.Uimy,[S(1),S(2)]);
-                uncertainty2D.Nump=reshape(uncertainty2D.Nump,[S(1),S(2)]);
+                if uncertainty(e).ppruncertainty==1
+                    SNRmetric.PPR=reshape(SNRmetric.PPR,[S(1),S(2)]);
+                    uncertainty2D.Upprx=reshape(uncertainty2D.Upprx,[S(1),S(2)]);
+                    uncertainty2D.Uppry=reshape(uncertainty2D.Uppry,[S(1),S(2)]);
+                    uncertainty2D.UpprxLB=reshape(uncertainty2D.UpprxLB,[S(1),S(2)]);
+                    uncertainty2D.UppryLB=reshape(uncertainty2D.UppryLB,[S(1),S(2)]);
+                    uncertainty2D.UpprxUB=reshape(uncertainty2D.UpprxUB,[S(1),S(2)]);
+                    uncertainty2D.UppryUB=reshape(uncertainty2D.UppryUB,[S(1),S(2)]);
+                end
+                if uncertainty.miuncertainty==1
+                    SNRmetric.MI=reshape(SNRmetric.MI,[S(1),S(2)]);
+                    uncertainty2D.UmixLB=reshape(uncertainty2D.UmixLB,[S(1),S(2)]);
+                    uncertainty2D.UmiyLB=reshape(uncertainty2D.UmiyLB,[S(1),S(2)]);
+                    uncertainty2D.UmixUB=reshape(uncertainty2D.UmixUB,[S(1),S(2)]);
+                    uncertainty2D.UmiyUB=reshape(uncertainty2D.UmiyUB,[S(1),S(2)]);
+                    uncertainty2D.Autod=reshape(uncertainty2D.Autod,[S(1),S(2)]);
+                end
+                if uncertainty.mcuncertainty==1
+                    uncertainty2D.Ixx=reshape(uncertainty2D.Ixx,[S(1),S(2)]);
+                    uncertainty2D.Iyy=reshape(uncertainty2D.Iyy,[S(1),S(2)]);
+                    uncertainty2D.biasx=reshape(uncertainty2D.biasx,[S(1),S(2)]);
+                    uncertainty2D.biasy=reshape(uncertainty2D.biasy,[S(1),S(2)]);
+                    uncertainty2D.Neff=reshape(uncertainty2D.Neff,[S(1),S(2)]);
+                end
+                if uncertainty.imuncertainty==1
+                    uncertainty2D.Uimx=reshape(uncertainty2D.Uimx,[S(1),S(2)]);
+                    uncertainty2D.Uimy=reshape(uncertainty2D.Uimy,[S(1),S(2)]);
+                    uncertainty2D.Nump=reshape(uncertainty2D.Nump,[S(1),S(2)]);
+                end
                 
-                SNRmetric.PPR=reshape(SNRmetric.PPR,[S(1),S(2)]);
-                SNRmetric.MI=reshape(SNRmetric.MI,[S(1),S(2)]);
                 
                 %Gradient correction for MC method
                 if uncertainty(e).mcuncertainty==1
@@ -1031,8 +1041,9 @@ switch char(M)
                     uncertainty2D.MCx=sqrt(uncertainty2D.biasx.^2+(Ixxt.^2)./uncertainty2D.Neff);
                     uncertainty2D.MCy=sqrt(uncertainty2D.biasy.^2+(Iyyt.^2)./uncertainty2D.Neff);
                 else
-                    uncertainty2D.MCx=zeros(S(1),S(2));
-                    uncertainty2D.MCy=zeros(S(1),S(2));
+                    %leave empty
+                    % uncertainty2D.MCx=zeros(S(1),S(2));
+                    % uncertainty2D.MCy=zeros(S(1),S(2));
                 end
                 
 %                 keyboard;
