@@ -363,6 +363,37 @@ else
 end
 convergemessage={msgX1;msgY1;msgX2;msgY2};
 [aXcam1 aYcam1 aXcam2 aYcam2];
+
+% Approximate camera angles calculated for each calibration Mapping
+% function using the ratio of the coefficients.
+if modeltype==1 || modeltype==2
+    
+    %[aXcam1 aYcam1]
+    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+    beta1 =atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+    beta2 =atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+    
+elseif modeltype==3
+    %[a_cam1]
+    aXcam1=[a_cam1(1,4) a_cam1(1,1) a_cam1(1,2) a_cam1(1,3)]';
+    aYcam1=[a_cam1(1,8) a_cam1(1,5) a_cam1(1,6) a_cam1(1,7)]';
+    aXcam2=[a_cam2(1,4) a_cam2(1,1) a_cam2(1,2) a_cam2(1,3)]';
+    aYcam2=[a_cam2(1,8) a_cam2(1,5) a_cam2(1,6) a_cam2(1,7)]';
+    %[aXcam1 aYcam1]
+    
+    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+    beta1=atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+    beta2=atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+    
+    aXcam1=[];aYcam1=[];
+    
+end
+
+
 % save('aXcam1.mat','aXcam1');
 % save('aXcam2.mat','aXcam2');
 % save('aYcam1.mat','aYcam1');
