@@ -231,14 +231,65 @@ fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Goal is to rotate points displaced by disparity map into a position that
+%will have no disparity when imaged by cameras at corrected relative
+%positions.
+
+% %original method was to calculate residual disparity directly
+% lg = length(xgrid(:));
+% zres1 = Roty'*Rotx'*[xgrid(:)'; ygrid(:)'; zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
+% zres2 = Roty'*Rotx'*[x2grid(:)';y2grid(:)';zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
+% 
+% 
+% dzres = zres2 - zres1;
+% 
+% figure(9);quiver(X3(:)',Y3(:)',dzres(1,:)/scalex,dzres(2,:)/scaley,1);title('difference between world coordinates in pixels');
+% axis equal tight xy, set(9,'Name','residual')
+
+%First recalculate a temporary calibration using just the triangulated fit
+%(can we reuse this if we don't save the z-rotation and xy-shift?)
+caldatamod.allx1data=ztrans1';
+caldatamod.allx2data=ztrans2'; %outputs the modified planes
+%calculate new polynomial transform coefficients
+[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
+    caldatamod.allx2data,allX1data,allX2data,method,optionsls);
+
+%Move displaced vector points in world space to corrected location
 lg = length(xgrid(:));
 zres1 = Roty'*Rotx'*[xgrid(:)'; ygrid(:)'; zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
 zres2 = Roty'*Rotx'*[x2grid(:)';y2grid(:)';zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
 
-dzres = zres2 - zres1;
+%next, project world coordinates back to image plane
+[X1res,Y1res]=poly_3xy_123z_fun(zres1(1,:),zres1(2,:),method,aXcam1,aYcam1,zres1(3,:));
+[X2res,Y2res]=poly_3xy_123z_fun(zres2(1,:),zres2(2,:),method,aXcam2,aYcam2,zres2(3,:));
 
-% figure(9);quiver(X3(:)',Y3(:)',dzres(1,:)/scalex,dzres(2,:)/scaley,1);title('difference between world coordinates in pixels');
-% axis equal tight xy, set(9,'Name','residual')
+%finally, reproject image points back to new z=0 plane
+x0=[1 1];           % initial guess for solver
+%camera 1:
+alldata.aX=aXcam1';
+alldata.aY=aYcam1';
+alldata.orderz = method;
+res1xy = zeros(2,length(X1res));
+res1XY = [X1res;Y1res];
+for k=1:length(X1res)
+    alldata.XYpoint=res1XY(:,k);
+    % solve for x,y for camera 1
+    [res1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+end
+%camera 2:
+alldata.aX=aXcam2';
+alldata.aY=aYcam2';
+res2xy = zeros(2,length(X2res));
+res2XY = [X2res;Y2res];
+alldata.orderz = method;
+for k=1:length(X2res)
+    alldata.XYpoint=res2XY(:,k);
+    % solve for x,y for camera 1
+    [res2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+end
+
+dzres = res2xy - res1xy;
+
 
 %try to correct rotation between cameras
 lg = length(xgrid(:));
@@ -339,7 +390,7 @@ caldatamod.aYcam1=aYcam1;
 caldatamod.aXcam2=aXcam2;
 caldatamod.aYcam2=aYcam2;
 caldatamod.convergemessage=convergemessage; % Storing the convergence information for each iteration of selfcalibartion
-convergemessage % displaying convergemeaasge
+convergemessage; % displaying convergemeaasge
 end
 
 

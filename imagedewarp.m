@@ -316,7 +316,7 @@ im2scale = max([left2scale,right2scale,top2scale,bottom2scale]);
 %for overall dewarp, use highest resolution across both images
 dewarpscale = max([im1scale, im2scale]); %pixels/unit
 
-%find the widest extents of the original images
+%find the widest extents of the original images (world units)
 xlow  = min([all1xy(1,:) all2xy(1,:)]);
 xhigh = max([all1xy(1,:) all2xy(1,:)]);
 ylow  = min([all1xy(2,:) all2xy(2,:)]);
@@ -324,9 +324,15 @@ yhigh = max([all1xy(2,:) all2xy(2,:)]);
 
 %set the number of points in dewarped image to approximate highest
 %resolution across both images
-ImaxD = (yhigh-ylow)*dewarpscale; %number of points in y
-JmaxD = (xhigh-xlow)*dewarpscale; %number of points in x
+ImaxD = ceil((yhigh-ylow)*dewarpscale); %number of points in y
+JmaxD = ceil((xhigh-xlow)*dewarpscale); %number of points in x
 
+%need to adjust upper limits to make sure scale is exact, and is same in 
+%both directions
+xhigh = xlow + (JmaxD-1)/dewarpscale;
+yhigh = ylow + (ImaxD-1)/dewarpscale;
+
+%using corrected xhigh,yhigh the scale should be the same in x and y
 [xgrid,ygrid]=meshgrid(linspace(xlow,xhigh,JmaxD),linspace(ylow,yhigh,ImaxD));
 
 % set zgrid to depth of current level if multiplane target
