@@ -1,4 +1,4 @@
-function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitmodels(allx1data,...
+function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitcameramodels(allx1data,...
     allx2data,allX1data,allX2data,modeltype,optionsls)
 % function [a_cam1 a_cam2 aXcam1 aYcam1 aXcam2 aYcam2 convergemessage]=fitcameramodels(allx1data,...
 %     allx2data,allX1data,allX2data,modeltype,optionsls)
@@ -362,7 +362,7 @@ else
     end
 end
 convergemessage={msgX1;msgY1;msgX2;msgY2};
-[aXcam1 aYcam1 aXcam2 aYcam2]
+[aXcam1 aYcam1 aXcam2 aYcam2];
 % save('aXcam1.mat','aXcam1');
 % save('aXcam2.mat','aXcam2');
 % save('aYcam1.mat','aYcam1');

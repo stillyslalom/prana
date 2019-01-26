@@ -332,7 +332,7 @@ end
 caldatamod.allx1data=ztrans1r';
 caldatamod.allx2data=ztrans2r'; %outputs the modified planes
 %calculate new polynomial transform coefficients
-[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitmodels(caldatamod.allx1data,...
+[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
     caldatamod.allx2data,allX1data,allX2data,method,optionsls);
 caldatamod.aXcam1=aXcam1;
 caldatamod.aYcam1=aYcam1;

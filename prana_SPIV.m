@@ -792,7 +792,7 @@ guiprops.caljob.allX2data=allX2data;
 % fprintf('saving initial world and image coordinates....\n');
 % save('calxworld.mat','allx1data');save('calyworld.mat','allx2data');save('calximage.mat','allX1data');save('calyimage.mat','allX2data');
 
-[a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitmodels(allx1data,...
+[a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitcameramodels(allx1data,...
     allx2data,allX1data,allX2data,modeltype,optionsls);
 
 %inselfcal(allx1data,allx2data,allX1data,alX2data);
