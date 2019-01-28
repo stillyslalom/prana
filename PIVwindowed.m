@@ -474,7 +474,7 @@ switch upper(tcorr)
                         MIest=SNRmetric.MI(n);
                         [Ixx,Iyy,biasx,biasy,Neff,~]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,MIest);
                         
-                    else
+                    else %this should never happen - miuncertainty forced to 1 if mcuncertainty==1
                         MIest=-1;
                         [Ixx,Iyy,biasx,biasy,Neff,Autod]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,MIest);
                         uncertainty2D.Autod(n)=Autod;
@@ -801,7 +801,7 @@ switch upper(tcorr)
                 G = abs(G);
                 
                 %subpixel estimation
-                [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
+                [U(n,:),V(n,:),Ctemp,Dtemp,DXtemp,DYtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
                 if Peakswitch
                     C(n,:)=Ctemp;
                     Dia(n,:)=Dtemp;
@@ -860,16 +860,20 @@ switch upper(tcorr)
                     INTS1 = max(region1(:));
                     INTS2 = max(region2(:));
                     
+                    %This is redundant - already defined from above:
                     %Calculate the magnitude part of the correlation plane
                     W = ones(Sy,Sx);
                     Wden = sqrt(P21.*conj(P21));
                     W(Wden~=0) = Wden(Wden~=0);
-                    % This part should be checked original function was a
-                    % bit confusing but from the paper this should work
-%                     W = ones(Sy,Sx);
-%                     Wden = sqrt(P21.*conj(P21));
-% %                     Wden1 = ifftn(Wden,'symmetric');
-%                     W(P21~=0) = Wden(P21~=0);
+                    
+                    % Replaced in favor of above section (which is a copy)
+                    % % This part should be checked original function was a
+                    % % bit confusing but from the paper this should work
+                    % W = ones(Sy,Sx);
+                    % Wden = sqrt(P21.*conj(P21));
+                    % % Wden1 = ifftn(Wden,'symmetric');
+                    % W(P21~=0) = Wden(P21~=0);
+
                     magG = ifftn(W,'symmetric');
                     magG = magG(fftindy,fftindx);
                     
@@ -883,12 +887,41 @@ switch upper(tcorr)
                     uncertainty2D.UmiyUB(n)=UyUB;
                     
                 end
+
+
                 % The uncertainty estimation using Moment of Correlation
-                % method for RPC needs to be figured out
-%                 if uncertainty.mcuncertainty==1
-% %                    [MCx,MCy]=Moment_of_correlation(f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,Udiff,Vdiff); 
-%                 end
-                
+                % method for RPC needs to be figured out.
+                % JJC: For now just use the naive approach:
+                % P21 is stripped to R, the phase correlation for MC
+                % f1,f2 are only used for autocorr if MI is missing
+                % Sx,Sy are window sizes; D is RPC diameter
+                % Differences in RPC MI: use magG instead of G
+                % fftindx, fftindy are for fftshift
+                % G is used for diameter of xcorr peak, and for MI
+                % DXtemp,DYtemp are diameters of RPC xcorr peak from subpix
+                % In MI calc, RPC uses magG, not G 
+                % Problem: G needs to be magG for MI, but just G for MC.
+                % Solution: switch to always computing MI outside of MC
+                % function - we do the work internally if missing anyway!
+                if uncertainty.mcuncertainty==1
+                    if uncertainty.miuncertainty==1
+                        MIest=SNRmetric.MI(n);
+                        [Ixx,Iyy,biasx,biasy,Neff,~]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,MIest);
+                        
+                    else %this should never happen - miuncertainty forced to 1 if mcuncertainty==1
+                        MIest=-1;
+                        [Ixx,Iyy,biasx,biasy,Neff,Autod]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp,DYtemp,region1,region2,MIest);
+                        uncertainty2D.Autod(n)=Autod;
+                    end
+                    uncertainty2D.Ixx(n)=Ixx;
+                    uncertainty2D.Iyy(n)=Iyy;
+                    uncertainty2D.biasx(n)=biasx;
+                    uncertainty2D.biasy(n)=biasy;
+                    uncertainty2D.Neff(n)=Neff;
+                    
+                end
+
+
             end
         end
         

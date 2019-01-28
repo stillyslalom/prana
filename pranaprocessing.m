@@ -294,7 +294,14 @@ for e=1:P
             uncertainty(e).mcuncertainty=A.mcuncertainty;
         end
     else
-        %even if the method is on, don't do the work
+        %even if the method is on, don't do the work if master uncertainty 
+        %anlayis switch is turned off
+    end
+    
+    %if mcuncertainty is on, we need to calculate miuncertainty too, so
+    %force it on
+    if uncertainty(e).mcuncertainty
+        uncertainty(e).miuncertainty = 1;
     end
     
     extrapeaks(e)=str2double(A.valextrapeaks);

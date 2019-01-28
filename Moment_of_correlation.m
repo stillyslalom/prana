@@ -174,7 +174,8 @@ biasy=gpy;
 % MCy=sqrt(biasy^2+(Iyyt^2)/Neff);
 end
 
-
+% JJC: this function is an exact duplicate of the external function.
+% Is it necessary?
 function [MI,Nim1,Nim2,INTS,Diapx,Diapy] = MI_Cal_SCC(G,nAuto1,nAuto2,INTS1,INTS2,Diap1x,Diap1y,Diap2x,Diap2y,Sx,Sy,fftindx,fftindy)
 %[MI,INTS,DiaP] = MI_Cal_SCC(G,nAuto1,nAuto2,INTS1,INTS2,Sx,Sy,fftindx,fftindy)
 %[MI,INTS,DiaP] = MI_Cal_SCC( region1,region2,Sx,Sy,fftindx,fftindy)
