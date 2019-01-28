@@ -171,7 +171,7 @@ numDefPasses    = zeros(P,1); % This stores the number of interative deform pass
 SaveIMdeform = str2double(Data.SaveIMdeform);
 
 % initializing uncertainty options
-uncertainty.uncertaintyestimate = 0;
+uncertainty.Uncswitch = 0;
 uncertainty.ppruncertainty  = 0;
 uncertainty.miuncertainty   = 0;
 uncertainty.imuncertainty   = 0;
@@ -267,10 +267,12 @@ for e=1:P
         Valoptions(e).Peakratio_thresh  = 0;
     end
     
-    % checking if uncertainty options are checked
-    % leave all methods set to 0 (default set above) if uncertainty 
-    % estimates are turned off
-    if uncertainty(e).uncertaintyestimate
+    % checking if uncertainty options are checked:
+    % Leave all methods set to 0 (default set above) if uncertainty 
+    % estimates are turned off.
+    % None of the uncertainty methods work if correlation method is SPC, so
+    % disable them.
+    if uncertainty(e).Uncswitch && ~strcmpi(Corr{e},'SPC')
         if ischar(A.ppruncertainty)
             uncertainty(e).ppruncertainty=str2num(A.ppruncertainty);
         else
@@ -699,16 +701,20 @@ switch char(M)
                             %Where Eval<0, no correlation was performed and Uc, etc are
                             %missing values.  Use Eval to fill in complete matrices U,V
                             %over all grid points X,Y.
+                            %U and V are temporary versions, and are likely
+                            %to be overwritten later.  Use the same names
+                            %here (instead of a temporary like Ut) for
+                            %efficiency.
                             if find_extrapeaks
-                                Ut=zeros(size(X,1),3,imClass);
-                                Vt=zeros(size(X,1),3,imClass);
-                                Ut(repmat(Eval>=0,[1 3]))=Uc;
-                                Vt(repmat(Eval>=0,[1 3]))=Vc;
+                                U=zeros(size(X,1),3,imClass);
+                                V=zeros(size(X,1),3,imClass);
+                                U(repmat(Eval>=0,[1 3]))=Uc;
+                                V(repmat(Eval>=0,[1 3]))=Vc;
                             else
-                                Ut=zeros(size(X),imClass);
-                                Vt=zeros(size(X),imClass);
-                                Ut(Eval>=0)=Uc;
-                                Vt(Eval>=0)=Vc;
+                                U=zeros(size(X),imClass);
+                                V=zeros(size(X),imClass);
+                                U(Eval>=0)=Uc;
+                                V(Eval>=0)=Vc;
                             end
 
                             
@@ -717,19 +723,16 @@ switch char(M)
                             
                             %velocity interpolation -
                             %resample U(X,Y) and V(X,Y) onto UI(XI,YI) and
-                            %VI(XIt,YIt) where XIt and YIt are a list of every
+                            %VI(XIt,YIt) where XI and YI are a list of every
                             %pixel in the image plane. Velinterp is the type of
                             %interpolation to use.
-                            % We have previously made sure XIt and YIt correspond
-                            % to the vector positions of the pixel centers by
-                            % shifting by -0.5.
-                            UIt = VFinterp(Xt,Yt,Ut,XI,YI,Velinterp);
-                            VIt = VFinterp(Xt,Yt,Vt,XI,YI,Velinterp);
+                            UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
+                            VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
                             
-                            XD1t = XI-UIt/2 ;
-                            YD1t = YI-VIt/2;
-                            XD2t = XI+UIt/2;
-                            YD2t = YI+VIt/2;
+                            XD1t = XI-UI/2 ;
+                            YD1t = YI-VI/2;
+                            XD2t = XI+UI/2;
+                            YD2t = YI+VI/2;
                             
                             % Preallocate memory for deformed images.
                             im1dt = zeros(size(im1),imClass);
@@ -991,33 +994,102 @@ switch char(M)
                 %---- This section is for Uncertainty value conversion to
                 %matrix and MC method gradient correction---------%
                 if uncertainty(e).ppruncertainty==1
-                    SNRmetric.PPR=reshape(SNRmetric.PPR,[S(1),S(2)]);
-                    uncertainty2D.Upprx=reshape(uncertainty2D.Upprx,[S(1),S(2)]);
-                    uncertainty2D.Uppry=reshape(uncertainty2D.Uppry,[S(1),S(2)]);
-                    uncertainty2D.UpprxLB=reshape(uncertainty2D.UpprxLB,[S(1),S(2)]);
-                    uncertainty2D.UppryLB=reshape(uncertainty2D.UppryLB,[S(1),S(2)]);
-                    uncertainty2D.UpprxUB=reshape(uncertainty2D.UpprxUB,[S(1),S(2)]);
-                    uncertainty2D.UppryUB=reshape(uncertainty2D.UppryUB,[S(1),S(2)]);
+                    %can't do these in place, so need to use an
+                    %intermediate variable
+                    temp_SNR = SNRmetric.PPR;
+                    SNRmetric.PPR          = zeros(size(X),imClass);
+                    SNRmetric.PPR(Eval>=0) = temp_SNR;
+                    
+                    temp_unc = uncertainty2D.Upprx;
+                    uncertainty2D.Upprx         = zeros(size(X),imClass);
+                    uncertainty2D.Upprx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Uppry;
+                    uncertainty2D.Uppry         = zeros(size(X),imClass);
+                    uncertainty2D.Uppry(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UpprxLB;
+                    uncertainty2D.UpprxLB         = zeros(size(X),imClass);
+                    uncertainty2D.UpprxLB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UppryLB;
+                    uncertainty2D.UppryLB         = zeros(size(X),imClass);
+                    uncertainty2D.UppryLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UpprxUB;
+                    uncertainty2D.UpprxUB         = zeros(size(X),imClass);
+                    uncertainty2D.UpprxUB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UppryUB;
+                    uncertainty2D.UppryUB         = zeros(size(X),imClass);
+                    uncertainty2D.UppryUB(Eval>=0)= temp_unc;
+                    
+                    clear temp_SNR temp_unc
                 end
                 if uncertainty.miuncertainty==1
-                    SNRmetric.MI=reshape(SNRmetric.MI,[S(1),S(2)]);
-                    uncertainty2D.UmixLB=reshape(uncertainty2D.UmixLB,[S(1),S(2)]);
-                    uncertainty2D.UmiyLB=reshape(uncertainty2D.UmiyLB,[S(1),S(2)]);
-                    uncertainty2D.UmixUB=reshape(uncertainty2D.UmixUB,[S(1),S(2)]);
-                    uncertainty2D.UmiyUB=reshape(uncertainty2D.UmiyUB,[S(1),S(2)]);
-                    uncertainty2D.Autod=reshape(uncertainty2D.Autod,[S(1),S(2)]);
+                    temp_SNR = SNRmetric.MI;
+                    SNRmetric.MI          = zeros(size(X),imClass);
+                    SNRmetric.MI(Eval>=0) = temp_SNR;
+                    
+                    temp_unc = uncertainty2D.UmixLB;
+                    uncertainty2D.UmixLB         = zeros(size(X),imClass);
+                    uncertainty2D.UmixLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UmiyLB;
+                    uncertainty2D.UmiyLB         = zeros(size(X),imClass);
+                    uncertainty2D.UmiyLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UmixUB;
+                    uncertainty2D.UmixUB         = zeros(size(X),imClass);
+                    uncertainty2D.UmixUB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UmiyUB;
+                    uncertainty2D.UmiyUB         = zeros(size(X),imClass);
+                    uncertainty2D.UmiyUB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Autod;
+                    uncertainty2D.Autod         = zeros(size(X),imClass);
+                    uncertainty2D.Autod(Eval>=0)= temp_unc;
+
+                    clear temp_SNR temp_unc
                 end
-                if uncertainty.mcuncertainty==1
-                    uncertainty2D.Ixx=reshape(uncertainty2D.Ixx,[S(1),S(2)]);
-                    uncertainty2D.Iyy=reshape(uncertainty2D.Iyy,[S(1),S(2)]);
-                    uncertainty2D.biasx=reshape(uncertainty2D.biasx,[S(1),S(2)]);
-                    uncertainty2D.biasy=reshape(uncertainty2D.biasy,[S(1),S(2)]);
-                    uncertainty2D.Neff=reshape(uncertainty2D.Neff,[S(1),S(2)]);
+                if uncertainty.mcuncertainty==1                    
+                    temp_unc = uncertainty2D.Ixx;
+                    uncertainty2D.Ixx         = zeros(size(X),imClass);
+                    uncertainty2D.Ixx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Iyy;
+                    uncertainty2D.Iyy         = zeros(size(X),imClass);
+                    uncertainty2D.Iyy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.biasx;
+                    uncertainty2D.biasx         = zeros(size(X),imClass);
+                    uncertainty2D.biasx(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.biasy;
+                    uncertainty2D.biasy         = zeros(size(X),imClass);
+                    uncertainty2D.biasy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Neff;
+                    uncertainty2D.Neff         = zeros(size(X),imClass);
+                    uncertainty2D.Neff(Eval>=0)= temp_unc;
+
+                    clear temp_unc
                 end
                 if uncertainty.imuncertainty==1
-                    uncertainty2D.Uimx=reshape(uncertainty2D.Uimx,[S(1),S(2)]);
-                    uncertainty2D.Uimy=reshape(uncertainty2D.Uimy,[S(1),S(2)]);
-                    uncertainty2D.Nump=reshape(uncertainty2D.Nump,[S(1),S(2)]);
+                    temp_unc = uncertainty2D.Uimx;
+                    uncertainty2D.Uimx         = zeros(size(X),imClass);
+                    uncertainty2D.Uimx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Uimy;
+                    uncertainty2D.Uimy         = zeros(size(X),imClass);
+                    uncertainty2D.Uimy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Nump;
+                    uncertainty2D.Nump         = zeros(size(X),imClass);
+                    uncertainty2D.Nump(Eval>=0)= temp_unc;
+
+                    clear temp_unc
                 end
                 
                 
