@@ -179,6 +179,12 @@ Duy=Duy.*(scaley);
 %world grid points shifted by the amount of disparity to get the
 %locations at which camera 2 local viewing angle are calculated.
 
+% %remove the mean displacement as a x-y coordinate translation
+% dx = mean(Dux(:));
+% dy = mean(Duy(:));
+% Dux = Dux - dx;
+% Duy = Duy - dy;
+
 xgrid=xg-Dux./2;
 x2grid=xg+Dux./2;
 ygrid=yg-Duy./2;
@@ -227,6 +233,7 @@ ztrans2=Roty'*Rotx'*[allx2data(:,1)';allx2data(:,2)';allx2data(:,3)'] - [tz(1).*
 
 
 fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,tz(3))
+%fprintf('alpha = %g deg; beta = %g deg; dx = %g mm; dy = %g mm; tz = %g mm.\n',alpha*180/pi,beta*180/pi,dx,dy,tz(3)) %if we want to include the mean displacemet
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -339,6 +346,7 @@ refineZR= input('','s');
 if strcmpi(refineZR,'Y')
     reftrue=1;
     fprintf('Do you want to apply the X-Y shift? (Y/N):')
+    %fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
     refineXY= input('','s');
     % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
 else
@@ -349,8 +357,10 @@ end
 %do we want to include the shift from the z-rotation too?
 if strcmpi(refineXY,'Y')
     tf = [tx/2; ty/2 ; 0];
+    %tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
 else
     tf = [0; 0 ; 0];
+    %tf = [dx/2; dy/2 ; 0];  %include a mean shift
 end
 
 if reftrue
@@ -373,6 +383,10 @@ else
     %use only the z-plane tilts we orginally calculated
     ztrans1r = ztrans1;
     ztrans2r = ztrans2;
+    % %use only the z-plane tilts we orginally calculated, plus the uniform
+    % %shifts
+    % ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+    % ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
 end
     
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -525,12 +539,27 @@ betatan(:,:,2)=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./(
     %keyboard;
 % Triangulation using formula (1) of that paper
 
+Triangulate based on direction with largest viewing angle
 if max(max(abs(alphatan(:,:,1)-abs(alphatan(:,:,2)))))>max(max(abs(betatan(:,:,1)-abs(betatan(:,:,2)))))
     dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+    fprintf('using Dux\n')
 else
     %dz2=Duy./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));%(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
     dz1=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+    fprintf('using Duy\n')
 end
+
+% %triangulate based on mean of both reconstructions
+% dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+% dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+% dz1 = (dzX+dzY)/2;
+
+% %triangulate based on mean of both reconstructions - I think the above
+% %breaks when the cameras aren't arranged left-right on the same side
+% dzX2=(sign(alphatan(1,1)).*Dux)./((alphatan(:,:,1))-abs(alphatan(:,:,2)));
+% dzY2=(sign( betatan(1,1)).*Duy)./(( betatan(:,:,1))-abs(betatan(:,:,2)));
+
+
 % if (mean(abs(Dux(:))))>(mean(abs(Duy(:))))
 %     dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
 % elseif (mean(abs(Duy(:))))>(mean(abs(Dux(:))))
