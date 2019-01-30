@@ -195,7 +195,8 @@ function loadpoints_Callback(hObject, eventdata, handles)
 [testptsname,testptspath] = uigetfile('*.mat','Select .mat file');
 
 if ~isequal(testptsname,0)                                                  % if the filename is valid
-    load([testptspath testptsname]);
+    loaddata = load([testptspath testptsname]);
+    datasave = loaddata.datasave;
     %keyboard;
 %     handles.output = hObject;
     guiprops = guidata(hObject);
@@ -212,37 +213,38 @@ if ~isequal(testptsname,0)                                                  % if
     end
     %keyboard;
     %%%SOMEHOW HANDLES ARE NOT BEING RESET AFTER LOADING A JOB NOT SURE WHY
-% %      set(handles.markerdiam,'String',num2str(guiprops.markerdiam));
-% %      set(handles.xplatelevelshift,'String',num2str(guiprops.xplatelevelshift));
-% %      set(handles.yplatelevelshift,'String',num2str(guiprops.yplatelevelshift));
-% %      set(handles.targetsidesbox,'Value',guiprops.targetsidesbox);
-% %      set(handles.hormarkerspacing,'String',num2str(guiprops.hormarkerspacing));
-% %      set(handles.vertmarkerspacing,'String',num2str(guiprops.vertmarkerspacing));
-% %      set(handles.targetcolor,'Value',guiprops.targetcolor);
-% %      set(handles.multilevelpopup,'String',guiprops.multilevelpopup);
-% %      
-% %      set(handles.zplanenumber,'String',num2str(guiprops.zplanenumber));
-% %      set(handles.zstart,'String',num2str(guiprops.zstart));
-% %      set(handles.planespacing,'String',num2str(guiprops.planespacing));
-% %      set(handles.channeldepth,'String',num2str(guiprops.channeldepth));
-% %      set(handles.levelnumber,'String',num2str(guiprops.levelnumber));
-% %      set(handles.platethickness,'String',num2str(guiprops.platethickness));
-% %    
-% %     
-% %     if strcmp(guiprops.multilevelpopup,'True')
-% %         %guiprops.caljob.multiple_level_plate ='true';
-% %         set(handles.multilevelpanel,'Visible','on');
-% %         % set(handles.levelnumber,'String','3');
-% % %         guiprops.levelnumber=2;
-% % %         guiprops.caljob.plate_level_number=guiprops.levelnumber;
-% %     elseif strcmp(guiprops.multilevelpopup,'False')
-% %         %guiprops.caljob.multiple_level_plate ='false';
-% %         set(handles.multilevelpanel,'Visible','off');
-% % %         guiprops.levelnumber = 1;
-% % %         guiprops.caljob.plate_level_number=guiprops.levelnumber;
-% %     end
-% %     set(handles.modeltypemenu,      'Value' ,guiprops.modeltypemenu);
-% %     set(handles.convergebox,        'String',guiprops.convergemessage);
+     set(guiprops.markerdiam,       'String',num2str(datasave.markerdiam));
+     set(guiprops.xplatelevelshift, 'String',num2str(datasave.xplatelevelshift));
+     set(guiprops.yplatelevelshift, 'String',num2str(datasave.yplatelevelshift));
+     set(guiprops.targetsidesboxcam1,'Value',datasave.targetsidesboxcam1);
+     set(guiprops.targetsidesboxcam2,'Value',datasave.targetsidesboxcam2);
+     set(guiprops.vertmarkerspacing,'String',num2str(datasave.vertmarkerspacing));
+     set(guiprops.hormarkerspacing, 'String',num2str(datasave.hormarkerspacing));
+     set(guiprops.targetcolor,      'Value', datasave.targetcolor);
+     set(guiprops.multilevelpopup,  'String',datasave.multilevelpopup);
+     
+     set(guiprops.zplanenumber,     'String',num2str(datasave.zplanenumber));
+     set(guiprops.zstart,           'String',num2str(datasave.zstart));
+     set(guiprops.planespacing,     'String',num2str(datasave.planespacing));
+     set(guiprops.channeldepth,     'String',num2str(datasave.channeldepth));
+     set(guiprops.levelnumber,      'String',num2str(datasave.levelnumber));
+     set(guiprops.platethickness,   'String',num2str(datasave.platethickness));
+   
+    
+    if strcmp(datasave.multilevelpopup,'True')
+        %guiprops.caljob.multiple_level_plate ='true';
+        set(guiprops.multilevelpanel,'Visible','on');
+        % set(handles.levelnumber,'String','3');
+%         guiprops.levelnumber=2;
+%         guiprops.caljob.plate_level_number=guiprops.levelnumber;
+    else strcmp(datasave.multilevelpopup,'False')
+        %guiprops.caljob.multiple_level_plate ='false';
+        set(guiprops.multilevelpanel,'Visible','off');
+%         guiprops.levelnumber = 1;
+%         guiprops.caljob.plate_level_number=guiprops.levelnumber;
+    end
+    set(guiprops.modeltypemenu,      'Value' ,datasave.modeltypemenu);
+    set(guiprops.convergebox,        'String',datasave.convergemessage);
     
     
 %     set(handles.markerdiam,         'String',num2str(guiprops.markerd));
