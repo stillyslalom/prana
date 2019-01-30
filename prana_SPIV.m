@@ -90,7 +90,7 @@ guiprops.markerdiam    = str2double(get(handles.markerdiam_box,'String'));
 guiprops.xplatelevelshift =str2double(get(handles.xplatelevelshift_box,'String'));
 guiprops.yplatelevelshift =str2double(get(handles.yplatelevelshift_box,'String'));
 guiprops.targetsidesboxcam1 = get(handles.targetsidesbox,'Value'); % cam1 orientation
-guiprops.targetsidexboxcam2 = get(handles.targetsidesbox2,'Value'); % cam2 orientation
+guiprops.targetsidesboxcam2 = get(handles.targetsidesbox2,'Value'); % cam2 orientation
 guiprops.vertmarkerspacing  = str2double(get(handles.vertmarkerspacing_box,'String'));
 guiprops.hormarkerspacing   = str2double(get(handles.hormarkerspacing_box,'String'));
 guiprops.targetcolor = get(handles.targetcolor_box,'Value');
@@ -112,8 +112,8 @@ if guiprops.targetcolor==1
 elseif guiprops.targcolor==2
     guiprops.caljob.grid_points_bright='false';
 end
-guiprops.caljob.targetsidecam1=guiprops.targetsidecam1;
-guiprops.caljob.targetsidecam2=guiprops.targetsidecam2;
+guiprops.caljob.targetsidecam1=guiprops.targetsidesboxcam1;
+guiprops.caljob.targetsidecam2=guiprops.targetsidesboxcam2;
 guiprops.caljob.grid_point_diameter=guiprops.markerdiam;
 
 guiprops.caljob.x_grid_spacing=guiprops.hormarkerspacing;
@@ -213,22 +213,23 @@ if ~isequal(testptsname,0)                                                  % if
     end
     %keyboard;
     %%%SOMEHOW HANDLES ARE NOT BEING RESET AFTER LOADING A JOB NOT SURE WHY
-     set(guiprops.markerdiam,       'String',num2str(datasave.markerdiam));
-     set(guiprops.xplatelevelshift, 'String',num2str(datasave.xplatelevelshift));
-     set(guiprops.yplatelevelshift, 'String',num2str(datasave.yplatelevelshift));
-     set(guiprops.targetsidesboxcam1,'Value',datasave.targetsidesboxcam1);
-     set(guiprops.targetsidesboxcam2,'Value',datasave.targetsidesboxcam2);
-     set(guiprops.vertmarkerspacing,'String',num2str(datasave.vertmarkerspacing));
-     set(guiprops.hormarkerspacing, 'String',num2str(datasave.hormarkerspacing));
-     set(guiprops.targetcolor,      'Value', datasave.targetcolor);
-     set(guiprops.multilevel,       'String',datasave.multilevel);
+     set(guiprops.markerdiam_box,       'String',num2str(datasave.markerdiam));
+     set(guiprops.xplatelevelshift_box, 'String',num2str(datasave.xplatelevelshift));
+     set(guiprops.yplatelevelshift_box, 'String',num2str(datasave.yplatelevelshift));
+     set(guiprops.targetsidesbox,       'Value',datasave.targetsidesboxcam1);
+     set(guiprops.targetsidesbox2,      'Value',datasave.targetsidesboxcam2);
+     set(guiprops.vertmarkerspacing_box,'String',num2str(datasave.vertmarkerspacing));
+     set(guiprops.hormarkerspacing_box, 'String',num2str(datasave.hormarkerspacing));
+     set(guiprops.targetcolor_box,      'Value', datasave.targetcolor);
+     set(guiprops.multilevelpopup,      'String',datasave.multilevel);
      
-     set(guiprops.zplanenumber,     'String',num2str(datasave.zplanenumber));
-     set(guiprops.zstart,           'String',num2str(datasave.zstart));
-     set(guiprops.planespacing,     'String',num2str(datasave.planespacing));
-     set(guiprops.channeldepth,     'String',num2str(datasave.channeldepth));
-     set(guiprops.levelnumber,      'String',num2str(datasave.levelnumber));
-     set(guiprops.platethickness,   'String',num2str(datasave.platethickness));
+     set(guiprops.zplanenumber_box,     'String',num2str(datasave.zplanenumber));
+     set(guiprops.zstart_box,           'String',num2str(datasave.zstart));
+     set(guiprops.planespacing_box,     'String',num2str(datasave.planespacing));
+     channeldepth = num2str(datasave.channeldepth,'%g,');
+     set(guiprops.channeldepth_box,     'String',channeldepth(1:end-1));
+     set(guiprops.levelnumber_box,      'String',num2str(datasave.levelnumber));
+     set(guiprops.platethickness_box,   'String',num2str(datasave.platethickness));
    
     
     if strcmp(datasave.multilevel,'True')
@@ -237,7 +238,7 @@ if ~isequal(testptsname,0)                                                  % if
         % set(handles.levelnumber_box,'String','3');
 %         guiprops.levelnumber_box=2;
 %         guiprops.caljob.plate_level_number=guiprops.levelnumber_box;
-    else %strcmp(datasave.multilevel,'False')
+    elseif strcmp(datasave.multilevel,'False')
         %guiprops.caljob.multiple_level_plate ='false';
         set(guiprops.multilevelpanel,'Visible','off');
 %         guiprops.levelnumber_box = 1;
