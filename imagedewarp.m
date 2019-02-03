@@ -357,7 +357,7 @@ if overplots == 1
     % H2 = plot(xgrid,ygrid,'.r','MarkerSize',4);xlabel('x (mm)');ylabel('y (mm)');
     % H(4) = H2(1);
     title('Camera Overlap and new vector locations');
-    Lstr = {'Camera 1 border','Camera 2 border','Overlap Border','Vector location'};
+    Lstr = {'Camera 1 border','Camera 2 border','Overlap Border'};%,'Vector location'};
     legend(H,Lstr);
     %             set(L,'Position',[0.4 0.4 0.2314 0.1869])
     %             slashlocs = find(data.outputdirectory == '/');
