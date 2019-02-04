@@ -179,11 +179,12 @@ Duy=Duy.*(scaley);
 %world grid points shifted by the amount of disparity to get the
 %locations at which camera 2 local viewing angle are calculated.
 
-% %remove the mean displacement as a x-y coordinate translation
-% dx = mean(Dux(:));
-% dy = mean(Duy(:));
-% Dux = Dux - dx;
-% Duy = Duy - dy;
+%remove the mean displacement as a x-y coordinate translation
+%should recalculate calibration functions now, and then redo disparities
+dx = mean(Dux(:));
+dy = mean(Duy(:));
+Dux = Dux - dx;
+Duy = Duy - dy;
 
 xgrid=xg-Dux./2;
 x2grid=xg+Dux./2;
@@ -232,8 +233,8 @@ ztrans2=Roty'*Rotx'*[allx2data(:,1)';allx2data(:,2)';allx2data(:,3)'] - [tz(1).*
 % hold on;scatter3(ztrans2(1,:),ztrans2(2,:),ztrans2(3,:),'r');hold off,legend('cam1','cam2')
 
 
-fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,tz(3))
-%fprintf('alpha = %g deg; beta = %g deg; dx = %g mm; dy = %g mm; tz = %g mm.\n',alpha*180/pi,beta*180/pi,dx,dy,tz(3)) %if we want to include the mean displacemet
+% fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,tz(3))
+fprintf('alpha = %g deg; beta = %g deg; dx = %g mm; dy = %g mm; tz = %g mm.\n',alpha*180/pi,beta*180/pi,dx,dy,tz(3)) %if we want to include the mean displacemet
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -345,8 +346,8 @@ refineZR= input('','s');
 
 if strcmpi(refineZR,'Y')
     reftrue=1;
-    fprintf('Do you want to apply the X-Y shift? (Y/N):')
-    %fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
+%     fprintf('Do you want to apply the X-Y shift? (Y/N):')
+    fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
     refineXY= input('','s');
     % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
 else
@@ -356,11 +357,11 @@ end
 
 %do we want to include the shift from the z-rotation too?
 if strcmpi(refineXY,'Y')
-    tf = [tx/2; ty/2 ; 0];
-    %tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
+%     tf = [tx/2; ty/2 ; 0];
+    tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
 else
-    tf = [0; 0 ; 0];
-    %tf = [dx/2; dy/2 ; 0];  %include a mean shift
+%     tf = [0; 0 ; 0];
+    tf = [dx/2; dy/2 ; 0];  %include a mean shift
 end
 
 if reftrue
@@ -380,13 +381,13 @@ if reftrue
     % ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)];
     
 else 
-    %use only the z-plane tilts we orginally calculated
-    ztrans1r = ztrans1;
-    ztrans2r = ztrans2;
-    % %use only the z-plane tilts we orginally calculated, plus the uniform
-    % %shifts
-    % ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
-    % ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+%     %use only the z-plane tilts we orginally calculated
+%     ztrans1r = ztrans1;
+%     ztrans2r = ztrans2;
+    %use only the z-plane tilts we orginally calculated, plus the uniform
+    %shifts
+    ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+    ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
 end
     
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
