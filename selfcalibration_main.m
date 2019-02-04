@@ -540,13 +540,24 @@ betatan(:,:,2)=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./(
     %keyboard;
 % Triangulation using formula (1) of that paper
 
-Triangulate based on direction with largest viewing angle
+%Triangulate based on direction with largest viewing angle
+dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+
+%triangulate based on mean of both reconstructions - I think the above
+%breaks when the cameras aren't arranged left-right on the same side
+dzX2=(sign(alphatan(1,1)).*Dux)./((alphatan(:,:,1))-abs(alphatan(:,:,2)));
+dzY2=(sign( betatan(1,1)).*Duy)./(( betatan(:,:,1))-abs(betatan(:,:,2)));
+
+
 if max(max(abs(alphatan(:,:,1)-abs(alphatan(:,:,2)))))>max(max(abs(betatan(:,:,1)-abs(betatan(:,:,2)))))
-    dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+    %dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+    dz1=dzX2;
     fprintf('using Dux\n')
 else
     %dz2=Duy./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));%(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
-    dz1=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+    %dz1=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+    dz1=dzY2;
     fprintf('using Duy\n')
 end
 
@@ -555,11 +566,12 @@ end
 % dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
 % dz1 = (dzX+dzY)/2;
 
-% %triangulate based on mean of both reconstructions - I think the above
-% %breaks when the cameras aren't arranged left-right on the same side
-% dzX2=(sign(alphatan(1,1)).*Dux)./((alphatan(:,:,1))-abs(alphatan(:,:,2)));
-% dzY2=(sign( betatan(1,1)).*Duy)./(( betatan(:,:,1))-abs(betatan(:,:,2)));
 
+figure(7)
+subplot(2,2,1),imagesc(dzX),colorbar,title('dzX')
+subplot(2,2,2),imagesc(dzY),colorbar,title('dzY')
+subplot(2,2,3),imagesc(dzX2),colorbar,title('dzX2')
+subplot(2,2,4),imagesc(dzY2),colorbar,title('dzY2')
 
 % if (mean(abs(Dux(:))))>(mean(abs(Duy(:))))
 %     dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
