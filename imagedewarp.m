@@ -417,7 +417,7 @@ if strcmp(dewarpmethod,'Willert')
         %parfor iteration variable must be consecutive integers, so create
         %a list variable to index into
         flist = [fstart:fstep:fend,(fstart:fstep:fend)+cstep];  
-        M=0;
+        M=3;
         parfor (n=1:length(flist),M)
             %get current frame number
             k=flist(n)
