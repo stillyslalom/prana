@@ -1150,8 +1150,10 @@ P0(3)=phi;
 P0(4)=sigma_x;
 P0(5)=sigma_y;
 P0(6)=gamma;
-% This is the length of a the side of a square that has twice the area as a
-% circle of radius R
+% % This is the length of a the side of a square that has twice the area as a
+% % circle of radius R; L~2.51*R
+% L=R*sqrt(2*pi);
+%do the fits get better if we use 3x area? L~3.07*R
 L=R*sqrt(2*pi);
 % This initializes the subpixel coordinate vectors
 XC_Sub=zeros(size(XC));
@@ -1178,7 +1180,7 @@ for ii=1:length(XC);
     % This saves the residual of the fit to the residual vector
     %calculate a normalized residual for comparison purposes
     res(ii)=sqrt(res_temp/numel(I_ROI))/abs(v_light-v_dark);
-    sqrt(res_temp/numel(I_ROI))/abs(v_light-v_dark)
+    sqrt(res_temp/numel(I_ROI))/abs(v_light-v_dark);
     % This is a pause for breaking purposes
     pause(1e-3);
 end;
