@@ -569,6 +569,21 @@ else
     fprintf('using Duy\n')
 end
 
+%compute the dz that minimizes the residual disparity for both dx and dy,
+%weighted by the camera angles
+% The following polynomial in dz the cost function for the minimization
+% of dr^2 = dx^2 + dy^2.
+% The roots will likely be imaginary, the real part will be the dz_min
+% [ (tan(a1) - tan(a2))^2 + (tan(b1) - tan(b2))^2, ...
+%    2*dy*(tan(b1) - tan(b2)) - 2*dx*(tan(a1) - tan(a2)), ...
+%    dx^2 + dy^2]
+A = (alphatan(:,:,1)-alphatan(:,:,2)).^2 + (betatan(:,:,1)-betatan(:,:,2)).^2;
+B = 2*Duy.*(betatan(:,:,1)-betatan(:,:,2)) - 2*Dux.*(alphatan(:,:,1)-alphatan(:,:,2));
+C = Dux.^2 + Duy.^2;
+
+dz2 = real((-B+sqrt(B.^2-4*A.*C))./(2*A));
+
+
 % %triangulate based on mean of both reconstructions
 % dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
 % dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
@@ -576,8 +591,9 @@ end
 
 
 figure(7)
-subplot(2,2,1),imagesc(dzX),colorbar,title('dzX')
-subplot(2,2,2),imagesc(dzY),colorbar,title('dzY')
+subplot(2,2,1),imagesc(dz2),colorbar,title('dz2')
+% subplot(2,2,1),imagesc(dzX),colorbar,title('dzX')
+% subplot(2,2,2),imagesc(dzY),colorbar,title('dzY')
 subplot(2,2,3),imagesc(dzX2),colorbar,title('dzX2')
 subplot(2,2,4),imagesc(dzY2),colorbar,title('dzY2')
 
@@ -595,7 +611,7 @@ subplot(2,2,4),imagesc(dzY2),colorbar,title('dzY2')
     
 %max(max(abs(dz2)))
 
-zgrid=zgrid+dz1;% the new z grid
+zgrid=zgrid+dz2;% the new z grid
 
 
 % figure(21);surf(atand(alphatan(:,:,1)));
