@@ -179,12 +179,22 @@ Duy=Duy.*(scaley);
 %world grid points shifted by the amount of disparity to get the
 %locations at which camera 2 local viewing angle are calculated.
 
-%remove the mean displacement as a x-y coordinate translation
-%should recalculate calibration functions now, and then redo disparities
-dx = mean(Dux(:));
-dy = mean(Duy(:));
-Dux = Dux - dx;
-Duy = Duy - dy;
+%Check if we want to use the mean disparity to shift the cameras before we
+%calculate the laser plane displacement
+fprintf('Do you want to shift the cameras by the mean disparity? (Y/N):') %message for if we pre-compute the mean
+shiftCam= input('','s');
+
+if strcmpi(shiftCam,'Y')    
+    %remove the mean displacement as a x-y coordinate translation
+    %should recalculate calibration functions now, and then redo disparities
+    dx = mean(Dux(:));
+    dy = mean(Duy(:));
+    Dux = Dux - dx;
+    Duy = Duy - dy;
+else
+    dx = 0;
+    dy = 0;
+end
 
 xgrid=xg-Dux./2;
 x2grid=xg+Dux./2;
