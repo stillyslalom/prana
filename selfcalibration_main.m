@@ -554,11 +554,9 @@ betatan(:,:,2)=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./(
 dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
 dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
 
-%triangulate based on mean of both reconstructions - I think the above
-%breaks when the cameras aren't arranged left-right on the same side
-dzX2=(sign(alphatan(1,1)).*Dux)./((alphatan(:,:,1))-abs(alphatan(:,:,2)));
-dzY2=(sign( betatan(1,1)).*Duy)./(( betatan(:,:,1))-abs(betatan(:,:,2)));
-
+%I think the above breaks when the cameras aren't arranged left-right on the same side
+dzX2= Dux./(alphatan(:,:,1)-alphatan(:,:,2));
+dzY2=-Duy./( betatan(:,:,1)- betatan(:,:,2));
 
 if max(max(abs(alphatan(:,:,1)-abs(alphatan(:,:,2)))))>max(max(abs(betatan(:,:,1)-abs(betatan(:,:,2)))))
     %dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
@@ -597,7 +595,7 @@ subplot(2,2,4),imagesc(dzY2),colorbar,title('dzY2')
     
 %max(max(abs(dz2)))
 
-zgrid=zgrid-dz1;% the new z grid
+zgrid=zgrid+dz1;% the new z grid
 
 
 % figure(21);surf(atand(alphatan(:,:,1)));
