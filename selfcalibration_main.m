@@ -191,6 +191,15 @@ if strcmpi(shiftCam,'Y')
     dy = mean(Duy(:));
     Dux = Dux - dx;
     Duy = Duy - dy;
+    
+    fprintf('Do you want to ignore the residual disparity? (Y/N):') %message for if we pre-compute the mean
+    onlyShift= input('','s');
+    
+    if strcmpi(onlyShift,'Y')
+        Dux = 0;
+        Duy = 0;
+    end
+
 else
     dx = 0;
     dy = 0;
