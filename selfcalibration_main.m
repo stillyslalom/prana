@@ -338,66 +338,130 @@ else
     y2grid = yg(:)+dzres(2,:)'./2; 
 end
 
+%% Calculate an inplane rotation and shift based on residual disparities
+
+% % Calculate only the in-plane rotation and shift
+% X2 = [x2grid(:).'; y2grid(:).'];
+% X1 = [xgrid(:).' ; ygrid(:).' ; ones(1,lg)];
+% 
+% %calculate the transform matrix between camera 1 and 2
+% A = X2/X1;
+% %extract the translation needed to shift the center of rotation
+% tx = A(1,3);
+% ty = A(2,3);
+% %assume small angles when calculating rotation angle
+% gamma = (-A(1,2) + A(2,1))/2;
+% fprintf('gamma = %g deg; tx = %g mm; ty = %g mm.\n',gamma*180/pi,tx,ty)
+% %build the analytical transform matrix
+% Rotz = [cos(gamma/2) -sin(gamma/2) 0 ; sin(gamma/2) cos(gamma/2) 0; 0 0 1];
+% 
+% %
+% %keyboard
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% %not sure why, but these input statements don't seem to be writing the
+% %prompt to the command window.  Move text to separate fprintf command
+% fprintf('Do you want to apply the Z-rotation? (Y/N):')
+% refineZR= input('','s');
+% % refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
+% 
+% 
+% if strcmpi(refineZR,'Y')
+%     reftrue=1;
+% %     fprintf('Do you want to apply the X-Y shift? (Y/N):')
+%     fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
+%     refineXY= input('','s');
+%     % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
+% else
+%     reftrue=0;
+%     refineXY = 'N';
+% end
+% 
+% %do we want to include the shift from the z-rotation too?
+% if strcmpi(refineXY,'Y')
+% %     tf = [tx/2; ty/2 ; 0];
+%     tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
+% else
+% %     tf = [0; 0 ; 0];
+%     tf = [dx/2; dy/2 ; 0];  %include a mean shift
+% end
+% 
+% if reftrue
+%     %modify the world coordinates of each camera with a rotation in Z
+%     
+%     %this also includes a shift in x and y, but it seems to fight with the
+%     %planar adjustments which can also produce apparent tx and ty, so we
+%     %added a question to see if the user even wants it.  Good practice
+%     %would be to converge the planar misalignment before trying the
+%     %rotation and shifts.
+%     ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+%     ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+% 
+%     % %For now, only apply the rotation about the origin of the world
+%     % %coordinates
+%     % ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)];
+%     % ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)];
+%     
+% else 
+% %     %use only the z-plane tilts we orginally calculated
+% %     ztrans1r = ztrans1;
+% %     ztrans2r = ztrans2;
+%     %use only the z-plane tilts we orginally calculated, plus the uniform
+%     %shifts
+%     ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+%     ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+% end
+   
+%% Calculate an in-plane affine transform based on residual disparities
+
+% Allow in-plane affine transform to be fully general (but only 2D)
+
+X0 = [xg(:).'    ; yg(:).'    ];
+X1 = [xgrid(:).' ; ygrid(:).' ];
 X2 = [x2grid(:).'; y2grid(:).'];
-X1 = [xgrid(:).' ; ygrid(:).' ; ones(1,lg)];
 
-%calculate the transform matrix between camera 1 and 2
-A = X2/X1;
+%transform matrices
+A  = X2/[X1; ones(1,lg)];   %should be approximately A=A2*inv(A1)
+A1 = X1/[X0; ones(1,lg)];   %transform from original grid to cam 1
+A2 = X2/[X0; ones(1,lg)];   %transform from original grid to cam 2
+
 %extract the translation needed to shift the center of rotation
-tx = A(1,3);
-ty = A(2,3);
-%assume small angles when calculating rotation angle
-gamma = (-A(1,2) + A(2,1))/2;
-fprintf('gamma = %g deg; tx = %g mm; ty = %g mm.\n',gamma*180/pi,tx,ty)
-%build the analytical transform matrix
-Rotz = [cos(gamma/2) -sin(gamma/2) 0 ; sin(gamma/2) cos(gamma/2) 0; 0 0 1];
-%%
-%keyboard
+tx1 = A1(1,3);
+ty1 = A1(2,3);
+tx2 = A2(1,3);
+ty2 = A2(2,3);
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%build the analytical transform matrix
+Rotz1 = [A1(1:2,1:2), [0;0]; 0 0 1]; %cam 1
+Rotz2 = [A2(1:2,1:2), [0;0]; 0 0 1]; %cam 2
 
 %not sure why, but these input statements don't seem to be writing the
 %prompt to the command window.  Move text to separate fprintf command
-fprintf('Do you want to apply the Z-rotation? (Y/N):')
-refineZR= input('','s');
-% refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
+fprintf('Do you want to apply the in-plane correction? (Y/N):')
+refine2D= input('','s');
 
-
-if strcmpi(refineZR,'Y')
+if strcmpi(refine2D,'Y')
     reftrue=1;
-%     fprintf('Do you want to apply the X-Y shift? (Y/N):')
-    fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
-    refineXY= input('','s');
-    % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
+    %include the mean shift plus translation
+    tf1 = [ dx/2-tx1;  dy/2-ty1 ; 0];  
+    tf2 = [-dx/2-tx2; -dy/2-ty2 ; 0];  
 else
     reftrue=0;
-    refineXY = 'N';
-end
-
-%do we want to include the shift from the z-rotation too?
-if strcmpi(refineXY,'Y')
-%     tf = [tx/2; ty/2 ; 0];
-    tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
-else
-%     tf = [0; 0 ; 0];
-    tf = [dx/2; dy/2 ; 0];  %include a mean shift
+    %include only the mean shift
+    tf1 = [ dx/2;  dy/2 ; 0]; 
+    tf2 = [-dx/2; -dy/2 ; 0];  
 end
 
 if reftrue
     %modify the world coordinates of each camera with a rotation in Z
     
-    %this also includes a shift in x and y, but it seems to fight with the
-    %planar adjustments which can also produce apparent tx and ty, so we
-    %added a question to see if the user even wants it.  Good practice
+    %Good practice
     %would be to converge the planar misalignment before trying the
     %rotation and shifts.
-    ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
-    ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+    ztrans1r=inv(Rotz1) * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf1(1).*ones(1,l1);tf1(2).*ones(1,l1);tf1(3).*ones(1,l1)];
+    ztrans2r=inv(Rotz2) * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] + [tf2(1).*ones(1,l2);tf2(2).*ones(1,l2);tf2(3).*ones(1,l2)];
 
-    % %For now, only apply the rotation about the origin of the world
-    % %coordinates
-    % ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)];
-    % ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)];
     
 else 
 %     %use only the z-plane tilts we orginally calculated
@@ -405,10 +469,12 @@ else
 %     ztrans2r = ztrans2;
     %use only the z-plane tilts we orginally calculated, plus the uniform
     %shifts
-    ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
-    ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+    ztrans1r = ztrans1 + [tf1(1).*ones(1,l1);tf1(2).*ones(1,l1);tf1(3).*ones(1,l1)];
+    ztrans2r = ztrans2 + [tf2(1).*ones(1,l2);tf2(2).*ones(1,l2);tf2(3).*ones(1,l2)];
 end
-    
+
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
