@@ -741,7 +741,9 @@ guiprops = guidata(hObject);
 set(handles.convergebox,'String','fitting...');
 pause(0.001);
 
+guiprops.caljob = prana_fitmodel(guiprops.caljob);
 
+%{
 allx1data(:,1)   = guiprops.caljob.calibration_data.x_world_full{1};  % contains all x,y,z data for camera 1
 allx1data(:,2)   = guiprops.caljob.calibration_data.y_world_full{1};
 allx1data(:,3)   = guiprops.caljob.calibration_data.z_world_full{1};
@@ -819,10 +821,13 @@ guiprops.caljob.a_cam2 = a_cam2;
 % % guiprops.ind2   = ind2;                                                     %
 % % guiprops.zpc1   = zero_plane_cam1;                                          %
 % % guiprops.zpc2   = zero_plane_cam2;                                          %
-                                                                            %
+
 guiprops.convergemessage = convergemessage;                                 %
 guiprops.caljob.convergemessage = convergemessage; 
 %
+%}
+guiprops.convergemessage = guiprops.caljob.convergemessage;   
+
 set(handles.convergebox,'String',guiprops.convergemessage);                 %
 %keyboard;
 %
