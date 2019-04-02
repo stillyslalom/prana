@@ -7,7 +7,7 @@ if strcmp(fitmodelname,'PPR_Charonkomodel')
     if strcmp(correlation_method,'SCC')
         Ap=0.226;Bp=1;Cp=0.08; Mp=13.1;Np=1;Sp=0.317;
         Uppr=sqrt((Mp*exp(-0.5*((ppr-Np)/Sp).^2)).^2+(Ap*ppr.^(-Bp)).^2+Cp.^2);
-    elseif strcmp(corrleation_method,'RPC')
+    elseif strcmp(correlation_method,'RPC')
         Ap=1.41;Bp=1;Cp=1.7e-5; Mp=9.76;Np=1;Sp=1.139;
         Uppr=sqrt((Mp*exp(-0.5*((ppr-Np)/Sp).^2)).^2+(Ap*ppr.^(-Bp)).^2+Cp.^2);
     end

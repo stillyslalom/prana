@@ -23,8 +23,8 @@ Diapy=(1/sqrt(2))*(Diap1y*Diap2y)^0.5;
 
 %make analytical gaussian particle and calculate
 %autocorrelaiton of the standard particle
-xco = 1:Sx;xco = repmat(xco,[Sx,1]); % build X axis
-yco = 1:Sy;yco = repmat(yco',[1,Sy]); % build Y axis
+xco = 1:Sx;xco = repmat(xco,[Sy,1]); % build X axis
+yco = 1:Sy;yco = repmat(yco',[1,Sx]); % build Y axis
 % INTS = (INTS1+INTS2)/2; % intensity of standard Gaussian particle is the mean (maximum) intensity of two frames
 INTS = sqrt(INTS1*INTS2); % intensity of standard Gaussian particle is the mean (maximum) intensity of two frames
 

@@ -2171,12 +2171,9 @@ end
 % --- Uncertainty Estimation Check Box ---
 function uncertaintycheckbox_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    eval(['handles.data.PIV' handles.data.cpass '.uncertaintyestimate = num2str(get(hObject,''Value''));'])
+	eval(['handles.data.PIV' handles.data.cpass '.uncertaintyestimate = num2str(get(hObject,''Value''));'])
     handles=set_PIVcontrols(handles);
-    if hObject.Value==1
-        guidata(hObject,handles)
-    end
-%         handles.
+    guidata(hObject,handles)
 end
 
 % --- PPR Uncertainty Estimation Check Box ---
@@ -2185,18 +2182,29 @@ function ppruncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.ppruncertainty = get(hObject,''Value'');'])
     guidata(hObject,handles)
-else
-    hObject.Value=0;
-    guidata(hObject,handles)
 end
 
 % --- MI Uncertainty Estimation Check Box ---
 function miuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1 
+%     %can't disable MI if MC is on
+%     if handles.mcuncertainty.Value == 0
+%         %MC is off, so switch MI to match the checkbox
+%         eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
+%     else
+%         %MC is on, so reset MI to on and save to data.PIV
+%         hObject.Value = 1;
+%         eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = 1;'])
+%     end
+    
     eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
-    guidata(hObject,handles)
-else
-    hObject.Value=0;
+    if hObject.Value == 0
+        %need to force MC off if MI is turned off, but don't have to
+        %turn it on if MI gets turned on
+        eval(['handles.data.PIV' handles.data.cpass '.mcuncertainty = get(hObject,''Value'');'])
+        %and turn off checkbox
+        handles.mcuncertainty.Value = 0;
+    end
     guidata(hObject,handles)
 end
 
@@ -2205,18 +2213,19 @@ function imuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.imuncertainty = get(hObject,''Value'');'])
     guidata(hObject,handles)
-else
-    hObject.Value=0;
-    guidata(hObject,handles)
 end
 
 % --- MC Uncertainty Estimation Check Box ---
 function mcuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.mcuncertainty = get(hObject,''Value'');'])
-    guidata(hObject,handles)
-else
-    hObject.Value=0;
+    if hObject.Value == 1
+        %need to force miuncertainty on for mc calculation, but don't have to
+        %turn it off if mc gets turned off
+        eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
+        %and turn on checkbox
+        handles.miuncertainty.Value = 1;
+    end
     guidata(hObject,handles)
 end
 
@@ -3204,11 +3213,15 @@ handles.data.cpass=num2str(N);
 
 if str2double(A.uncertaintyestimate)==0
     set(handles.uncertaintycheckbox,'Value',0);
-    set(handles.ppruncertainty,'Value',0);
-    set(handles.miuncertainty,'Value',0);
-    set(handles.imuncertainty,'Value',0);
-    set(handles.mcuncertainty,'Value',0);
+    set(handles.ppruncertainty,'Enable','off');
+    set(handles.miuncertainty,'Enable','off');
+    set(handles.imuncertainty,'Enable','off');
+    set(handles.mcuncertainty,'Enable','off');
 else
+    set(handles.ppruncertainty,'Enable','on');
+    set(handles.miuncertainty,'Enable','on');
+    set(handles.imuncertainty,'Enable','on');
+    set(handles.mcuncertainty,'Enable','on');
 %     keyboard;
     set(handles.uncertaintycheckbox,'Value', str2double(A.uncertaintyestimate));
     if ischar(A.ppruncertainty)

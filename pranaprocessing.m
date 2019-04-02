@@ -272,24 +272,29 @@ for e=1:P
     % estimates are turned off.
     % None of the uncertainty methods work if correlation method is SPC, so
     % disable them.
+    if ischar(A.uncertaintyestimate)
+        uncertainty(e).Uncswitch=str2double(A.uncertaintyestimate);
+    else
+        uncertainty(e).Uncswitch=A.uncertaintyestimate;
+    end
     if uncertainty(e).Uncswitch && ~strcmpi(Corr{e},'SPC')
         if ischar(A.ppruncertainty)
-            uncertainty(e).ppruncertainty=str2num(A.ppruncertainty);
+            uncertainty(e).ppruncertainty=str2double(A.ppruncertainty);
         else
             uncertainty(e).ppruncertainty=A.ppruncertainty;
         end
         if ischar(A.miuncertainty)
-            uncertainty(e).miuncertainty=str2num(A.miuncertainty);
+            uncertainty(e).miuncertainty=str2double(A.miuncertainty);
         else
             uncertainty(e).miuncertainty=A.miuncertainty;
         end
         if ischar(A.imuncertainty)
-            uncertainty(e).imuncertainty=str2num(A.imuncertainty);
+            uncertainty(e).imuncertainty=str2double(A.imuncertainty);
         else
             uncertainty(e).imuncertainty=A.imuncertainty;
         end
         if ischar(A.mcuncertainty)
-            uncertainty(e).mcuncertainty=str2num(A.mcuncertainty);
+            uncertainty(e).mcuncertainty=str2double(A.mcuncertainty);
         else
             uncertainty(e).mcuncertainty=A.mcuncertainty;
         end
@@ -321,6 +326,7 @@ end
 % load dynamic mask and flip coordinates
 if strcmp(Data.masktype,'dynamic')
     q=1;
+    %disp([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))])
     mask = cast(imread([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))]),imClass);
     mask = flipud(mask);
 end
@@ -456,6 +462,7 @@ switch char(M)
             
             % load dynamic mask and flip coordinates
             if strcmp(Data.masktype,'dynamic')
+                disp([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))])
                 mask = cast(imread([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))]),imClass);
                 mask = flipud(mask);
             end
@@ -999,101 +1006,101 @@ switch char(M)
                 
                 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 %---- This section is for Uncertainty value conversion to
-                %matrix and MC method gradient correction---------%
+                %matrix and MC method gradient correction---------% 
                 if uncertainty(e).ppruncertainty==1
                     %can't do these in place, so need to use an
                     %intermediate variable
                     temp_SNR = SNRmetric.PPR;
-                    SNRmetric.PPR          = zeros(size(X),imClass);
+                    SNRmetric.PPR          = zeros([S(1),S(2)],imClass);
                     SNRmetric.PPR(Eval>=0) = temp_SNR;
                     
                     temp_unc = uncertainty2D.Upprx;
-                    uncertainty2D.Upprx         = zeros(size(X),imClass);
+                    uncertainty2D.Upprx         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Upprx(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Uppry;
-                    uncertainty2D.Uppry         = zeros(size(X),imClass);
+                    uncertainty2D.Uppry         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Uppry(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.UpprxLB;
-                    uncertainty2D.UpprxLB         = zeros(size(X),imClass);
+                    uncertainty2D.UpprxLB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UpprxLB(Eval>=0)= temp_unc;
 
                     temp_unc = uncertainty2D.UppryLB;
-                    uncertainty2D.UppryLB         = zeros(size(X),imClass);
+                    uncertainty2D.UppryLB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UppryLB(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.UpprxUB;
-                    uncertainty2D.UpprxUB         = zeros(size(X),imClass);
+                    uncertainty2D.UpprxUB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UpprxUB(Eval>=0)= temp_unc;
 
                     temp_unc = uncertainty2D.UppryUB;
-                    uncertainty2D.UppryUB         = zeros(size(X),imClass);
+                    uncertainty2D.UppryUB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UppryUB(Eval>=0)= temp_unc;
                     
                     clear temp_SNR temp_unc
                 end
-                if uncertainty.miuncertainty==1
+                if uncertainty(e).miuncertainty==1
                     temp_SNR = SNRmetric.MI;
-                    SNRmetric.MI          = zeros(size(X),imClass);
+                    SNRmetric.MI          = zeros([S(1),S(2)],imClass);
                     SNRmetric.MI(Eval>=0) = temp_SNR;
                     
                     temp_unc = uncertainty2D.UmixLB;
-                    uncertainty2D.UmixLB         = zeros(size(X),imClass);
+                    uncertainty2D.UmixLB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UmixLB(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.UmiyLB;
-                    uncertainty2D.UmiyLB         = zeros(size(X),imClass);
+                    uncertainty2D.UmiyLB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UmiyLB(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.UmixUB;
-                    uncertainty2D.UmixUB         = zeros(size(X),imClass);
+                    uncertainty2D.UmixUB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UmixUB(Eval>=0)= temp_unc;
 
                     temp_unc = uncertainty2D.UmiyUB;
-                    uncertainty2D.UmiyUB         = zeros(size(X),imClass);
+                    uncertainty2D.UmiyUB         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.UmiyUB(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Autod;
-                    uncertainty2D.Autod         = zeros(size(X),imClass);
+                    uncertainty2D.Autod         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Autod(Eval>=0)= temp_unc;
 
                     clear temp_SNR temp_unc
                 end
-                if uncertainty.mcuncertainty==1                    
+                if uncertainty(e).mcuncertainty==1                    
                     temp_unc = uncertainty2D.Ixx;
-                    uncertainty2D.Ixx         = zeros(size(X),imClass);
+                    uncertainty2D.Ixx         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Ixx(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Iyy;
-                    uncertainty2D.Iyy         = zeros(size(X),imClass);
+                    uncertainty2D.Iyy         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Iyy(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.biasx;
-                    uncertainty2D.biasx         = zeros(size(X),imClass);
+                    uncertainty2D.biasx         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.biasx(Eval>=0)= temp_unc;
 
                     temp_unc = uncertainty2D.biasy;
-                    uncertainty2D.biasy         = zeros(size(X),imClass);
+                    uncertainty2D.biasy         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.biasy(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Neff;
-                    uncertainty2D.Neff         = zeros(size(X),imClass);
+                    uncertainty2D.Neff         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Neff(Eval>=0)= temp_unc;
 
                     clear temp_unc
                 end
-                if uncertainty.imuncertainty==1
+                if uncertainty(e).imuncertainty==1
                     temp_unc = uncertainty2D.Uimx;
-                    uncertainty2D.Uimx         = zeros(size(X),imClass);
+                    uncertainty2D.Uimx         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Uimx(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Uimy;
-                    uncertainty2D.Uimy         = zeros(size(X),imClass);
+                    uncertainty2D.Uimy         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Uimy(Eval>=0)= temp_unc;
                     
                     temp_unc = uncertainty2D.Nump;
-                    uncertainty2D.Nump         = zeros(size(X),imClass);
+                    uncertainty2D.Nump         = zeros([S(1),S(2)],imClass);
                     uncertainty2D.Nump(Eval>=0)= temp_unc;
 
                     clear temp_unc
