@@ -528,7 +528,7 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=1:2
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
                 2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid;
@@ -543,7 +543,7 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 2nd order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=1:2
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5).*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(11)*xgrid.^2 + 2*a(12)*xgrid.*ygrid + ...
                 a(13)*ygrid.^2 + 2*a(15)*xgrid.*zgrid + a(16)*ygrid.*zgrid + a(18)*zgrid.^2;
@@ -555,6 +555,24 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
                 a(17)*ygrid.^2 + 2*a(18)*xgrid.*zgrid + 2*a(19)*ygrid.*zgrid;
         end
         
+    elseif caldata.modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        for gg=1:2
+            a=aall(:,gg);
+            dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
+                2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid + ...
+                2*a(17)*xgrid.*ygrid.*zgrid + a(18)*ygrid.^2.*zgrid + 3*a(19)*xgrid.^2.*zgrid;
+            
+            dFdx2(:,:,gg) = a(3) + a(6)*xgrid + 2*a(7)*ygrid + a(9)*zgrid + a(11)*xgrid.^2 + ...
+                2*a(12)*xgrid.*ygrid + 3*a(13)*ygrid.^2 + a(15)*xgrid.*zgrid + 2*a(16)*ygrid.*zgrid + ...
+                a(17)*xgrid.^2.*zgrid + 2*a(18)*xgrid.*ygrid.*zgrid + 3*a(20)*ygrid.^2.*zgrid;
+            
+            dFdx3(:,:,gg) = a(4) + a(8)*xgrid + a(9)*ygrid + a(14)*xgrid.^2 + a(15)*xgrid.*ygrid + a(16)*ygrid.^2 + ...
+                a(17)*xgrid.^2.*ygrid + a(18)*xgrid.*ygrid.^2 + a(19)*xgrid.^3 + a(20)*ygrid.^3;
+        end
+        
     end
 
 %calculating the viewing angles using formula (7) and (8) from Giordano and Astarita's paper "Spatial resolution of the Stereo PIV technique" (2009)
@@ -563,9 +581,9 @@ alphatan(:,:,1)=(((dFdx3(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx3(:,:,1)))./
 betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./((dFdx1(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx1(:,:,1))));
 
 %aall=[aXcam1 aYcam1 aXcam2 aYcam2];
-    dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
-    dFdx2=zeros(rows,cols,4);
-    dFdx3=zeros(rows,cols,4);
+%    dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
+%    dFdx2=zeros(rows,cols,4);
+%    dFdx3=zeros(rows,cols,4);
 %Xx1c1=aXcam1(2) + 2*aXcam1(5).*x1
 
 
@@ -574,7 +592,7 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=3:4
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5)*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(10)*x2grid.^2 + ...
                 2*a(11)*x2grid.*y2grid + a(12)*y2grid.^2 + 2*a(14)*x2grid.*zgrid + a(15)*y2grid.*zgrid;
@@ -589,7 +607,7 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 2nd order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=3:4
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5).*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(11)*x2grid.^2 + 2*a(12)*x2grid.*y2grid + ...
                 a(13)*y2grid.^2 + 2*a(15)*x2grid.*zgrid + a(16)*y2grid.*zgrid + a(18)*zgrid.^2;
@@ -599,6 +617,24 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
             
             dFdx3(:,:,gg) = a(4) + a(8)*x2grid + a(9)*y2grid + 2*a(10)*zgrid + a(15)*x2grid.^2 + a(16)*x2grid.*y2grid + ...
                 a(17)*y2grid.^2 + 2*a(18)*x2grid.*zgrid + 2*a(19)*y2grid.*zgrid;
+        end
+        
+    elseif caldata.modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        for gg=3:4
+            a=aall(:,gg);
+            dFdx1(:,:,gg) = a(2) + 2*a(5)*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(10)*x2grid.^2 + ...
+                2*a(11)*x2grid.*y2grid + a(12)*y2grid.^2 + 2*a(14)*x2grid.*zgrid + a(15)*y2grid.*zgrid + ...
+                2*a(17)*x2grid.*y2grid.*zgrid + a(18)*y2grid.^2.*zgrid + 3*a(19)*x2grid.^2.*zgrid;
+            
+            dFdx2(:,:,gg) = a(3) + a(6)*x2grid + 2*a(7)*y2grid + a(9)*zgrid + a(11)*x2grid.^2 + ...
+                2*a(12)*x2grid.*y2grid + 3*a(13)*y2grid.^2 + a(15)*x2grid.*zgrid + 2*a(16)*y2grid.*zgrid + ...
+                a(17)*x2grid.^2.*zgrid + 2*a(18)*x2grid.*y2grid.*zgrid + 3*a(20)*y2grid.^2.*zgrid;
+            
+            dFdx3(:,:,gg) = a(4) + a(8)*x2grid + a(9)*y2grid + a(14)*x2grid.^2 + a(15)*x2grid.*y2grid + a(16)*y2grid.^2 + ...
+                a(17)*x2grid.^2.*y2grid + a(18)*x2grid.*y2grid.^2 + a(19)*x2grid.^3 + a(20)*y2grid.^3;
         end
         
     end

@@ -136,8 +136,12 @@ if modeltype==1
     a=[100; ones(15,1)];        % initial guesss for solver
 elseif modeltype==2
     a=[100; ones(18,1)];        % initial guesss for solver
-else    % camera pinhole model
-    
+elseif modeltype==3
+% camera pinhole model, don't need a guess
+elseif modeltype==4
+    a=[100; ones(19,1)];        % initial guesss for solver    
+else
+    error('Unknown modeltype in fitcameramodels.m')
 end
 
 % Defines the percision of the outputs in the fit table in the GUI.
@@ -145,9 +149,9 @@ printformat='%5.4f';        % for converge box message
 printformat1='%7.6f';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% If either of the cubic XY camera models are going to be used.  
+% If either of the cubic XY camera models are going to be used (or DaVis).  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if ((modeltype==1) || (modeltype==2))
+if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     
     % Set model type
     alldata.orderz=modeltype;      
@@ -366,7 +370,7 @@ convergemessage={msgX1;msgY1;msgX2;msgY2};
 
 % Approximate camera angles calculated for each calibration Mapping
 % function using the ratio of the coefficients.
-if modeltype==1 || modeltype==2
+if modeltype==1 || modeltype==2 || modeltype==4
     
     %[aXcam1 aYcam1]
     alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
@@ -391,6 +395,8 @@ elseif modeltype==3
     
     aXcam1=[];aYcam1=[];
     
+else
+    warning('Unknown modeltype in fitcameramodels.m')
 end
 
 
