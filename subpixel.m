@@ -206,9 +206,13 @@ else
                     y_max=CORRELATION_HEIGHT;
                 end
                 
+                try
                 points = ...
                     double(SPATIAL_CORRELATION_PLANE(y_min:y_max,x_min:x_max).* ...
                     WEIGHTING_MATRIX(y_min:y_max,x_min:x_max));
+                catch err
+                    %pause
+                end
                 
                 % Subtract the minimum value from the points matrix
                 points_min_sub = points - min(points(:));
@@ -219,9 +223,12 @@ else
                 %Options for the lsqnonlin solver using Levenberg-Marquardt solver
                 options=optimset('MaxIter',1200,'MaxFunEvals',5000,'TolX',1e-6,'TolFun',1e-6,...
                     'Display','off','DiffMinChange',1e-7,'DiffMaxChange',1,...
-                    'Algorithm','levenberg-marquardt');
+                    'Algorithm','trust-region-reflective');
+%                 options=optimset('MaxIter',1200,'MaxFunEvals',5000,'TolX',1e-6,'TolFun',1e-6,...
+%                     'Display','off','DiffMinChange',1e-7,'DiffMaxChange',1,...
+%                     'Algorithm','levenberg-marquardt');
                 
-                %xvars is [M,betaX,betaY,CX,CY,alpha]
+                %xvars is [M,betaX,betaY,CX,CY,alpha,C]
                 
                 % Set empty lower bounds (LB) and upper bounds (UB) 
                 % for the least squares solver LSQNONLIN.
@@ -235,6 +242,7 @@ else
 %                       0.5*(sigma/D2)^2, ...
 %                       shift_locx, ...
 %                       shift_locy, ...
+%                       0,...
 %                       0];
 %                   
                   
@@ -243,6 +251,7 @@ else
                       0.5*(sigma/D2)^2, ...
                       shift_locx, ...
                       shift_locy, ...
+                      0,...
                       0];
 
                 [xloc, yloc]=meshgrid(x_min:x_max,y_min:y_max);
@@ -280,8 +289,10 @@ else
                     dX = max( abs(dA*cos(peak_angle)), abs(dB*sin(peak_angle)) );
                     dY = max( abs(dA*sin(peak_angle)), abs(dB*cos(peak_angle)) );
                                         
-                    DX(i) = dX;
-                    DY(i) = dY;
+%                     DX(i) = dX;
+%                     DY(i) = dY;
+                    DX(i) = abs(dA);
+                    DY(i) = abs(dB);
                     PEAK_ANGLE(i) = peak_angle;
                     
                     %LSqF didn't fail...

@@ -1,4 +1,4 @@
-function [X,Y,U,V,C,Dia,Corrplanes]=PIVwindowed(im1,im2,tcorr,window,res,zpad,D,Zeromean,Peaklocator,Peakswitch,fracval,saveplane,X,Y,Uin,Vin)
+function [X,Y,U,V,C,Dia,Corrplanes,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,tcorr,window,res,zpad,D,Zeromean,Peaklocator,Peakswitch,fracval,saveplane,X,Y,uncertainty,Uin,Vin)
 % --- DPIV Correlation ---
 imClass = 'double';
 
@@ -45,7 +45,8 @@ Y=Y(:);
 %preallocate velocity fields and grid format
 Nx = window(1);
 Ny = window(2);
-if nargin <=15
+
+if nargin <=16
     Uin = zeros(length(X),1,imClass);
     Vin = zeros(length(X),1,imClass);
 end
@@ -130,6 +131,38 @@ else
     Corrplanes = 0;
 end
 
+%to save space, initialize only the variables we will be using
+
+if uncertainty.ppruncertainty==1
+    SNRmetric.PPR         = zeros(length(X),1);
+    uncertainty2D.Upprx   = zeros(length(X),1);
+    uncertainty2D.Uppry   = zeros(length(X),1);
+    uncertainty2D.UpprxLB = zeros(length(X),1);
+    uncertainty2D.UppryLB = zeros(length(X),1);
+    uncertainty2D.UpprxUB = zeros(length(X),1);
+    uncertainty2D.UppryUB = zeros(length(X),1);
+end
+if uncertainty.miuncertainty==1
+    SNRmetric.MI         = zeros(length(X),1);
+    uncertainty2D.UmixLB = zeros(length(X),1);
+    uncertainty2D.UmiyLB = zeros(length(X),1);
+    uncertainty2D.UmixUB = zeros(length(X),1);
+    uncertainty2D.UmiyUB = zeros(length(X),1);
+    uncertainty2D.Autod  = zeros(length(X),1);
+end
+if uncertainty.mcuncertainty==1
+    uncertainty2D.Ixx   = zeros(length(X),1);
+    uncertainty2D.Iyy   = zeros(length(X),1);
+    uncertainty2D.biasx = zeros(length(X),1);
+    uncertainty2D.biasy = zeros(length(X),1);
+    uncertainty2D.Neff  = zeros(length(X),1);
+end
+if uncertainty.imuncertainty==1
+    uncertainty2D.Uimx  = zeros(length(X),1);
+    uncertainty2D.Uimy  = zeros(length(X),1);
+    uncertainty2D.Nump  = zeros(length(X),1);
+end
+            
 switch upper(tcorr)
     
     %Standard Cross Correlation
@@ -159,7 +192,7 @@ switch upper(tcorr)
                 
                 r=1;
 
-                while r<=size(im1,3);
+                while r<=size(im1,3)
                     %find the image windows
                     zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r);
                     zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r);
@@ -196,10 +229,10 @@ switch upper(tcorr)
                         %G(5) is x=+1, y= 0
                         
                         Gens(3) = abs( sum(region1(:).*region2(:)) );
-                        Gens(1) = abs( sum(sum(region1(:      ,1:end-1).*region2(:      ,2:end  )))+sum(region1(:,end).*region2(:,1  )) );
-                        Gens(5) = abs( sum(sum(region1(:      ,2:end  ).*region2(:      ,1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
-                        Gens(2) = abs( sum(sum(region1(1:end-1,:      ).*region2(2:end  ,:      )))+sum(region1(end,:).*region2(1  ,:)) );
-                        Gens(4) = abs( sum(sum(region1(2:end  ,:      ).*region2(1:end-1,:      )))+sum(region1(1  ,:).*region2(end,:)) );
+                        Gens(1) = abs( sum(sum(region1( :, 1:end-1).*region2( :, 2:end  )))+sum(region1(:,end).*region2(:,1  )) );
+                        Gens(5) = abs( sum(sum(region1( :, 2:end  ).*region2( :, 1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
+                        Gens(2) = abs( sum(sum(region1(1:end-1, : ).*region2(2:end  , : )))+sum(region1(end,:).*region2(1,  :)) );
+                        Gens(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region2(end,:)) );
                         
                         if max(Gens(1:5))~=Gens(3)
                             %dump the subset, and start over at first color index 
@@ -320,11 +353,11 @@ switch upper(tcorr)
                     
                     G = zeros(5,1);
                     G(3) = abs( sum(region1(:).*region2(:)) );
-                    G(1) = abs( sum(sum(region1(:      ,1:end-1).*region2(:      ,2:end  )))+sum(region1(:,end).*region2(:,1  )) );
-                    G(5) = abs( sum(sum(region1(:      ,2:end  ).*region2(:      ,1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
-                    G(2) = abs( sum(sum(region1(1:end-1,:      ).*region2(2:end  ,:      )))+sum(region1(end,:).*region2(1  ,:)) );
-                    G(4) = abs( sum(sum(region1(2:end  ,:      ).*region2(1:end-1,:      )))+sum(region1(1  ,:).*region2(end,:)) );
-                    
+                    G(1) = abs( sum(sum(region1( :, 1:end-1).*region2( :, 2:end  )))+sum(region1(:,end).*region2(:,1  )) );
+                    G(5) = abs( sum(sum(region1( :, 2:end  ).*region2( :, 1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
+                    G(2) = abs( sum(sum(region1(1:end-1, : ).*region2(2:end  , : )))+sum(region1(end,:).*region2(1,  :)) );
+                    G(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region2(end,:)) );
+                   
                     if max(G)~=G(3)
                         %dump the subset, and start over at first color index
                         %(incr. at end of while loop back to 1)
@@ -365,9 +398,11 @@ switch upper(tcorr)
                     G = ifftn(P21,'symmetric');
                     G = G(fftindy,fftindx);
                     G = abs(G);
+                % Minimum value of the correlation plane is subtracted
+                G=G-min(G(:));
 
                     %subpixel estimation
-                    [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
+                    [U(n,:),V(n,:),Ctemp,Dtemp,DXtemp,DYtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
                     if Peakswitch
                         C(n,:)=Ctemp;
                         Dia(n,:)=Dtemp;
@@ -375,6 +410,85 @@ switch upper(tcorr)
                     if saveplane
                         Corrplanes(:,:,n) = G;
                     end
+                
+                % Evaluate uncertainty options for SCC
+                if uncertainty.ppruncertainty==1
+                     %SNR calculation the other output arguments of Cal_SNR
+                     %are Maximum peak value,PRMSR,PCE,ENTROPY
+                    metric='PPR';
+                    PPRval = Cal_SNR(G,metric);
+                    % Save the SNR metrics
+                    SNRmetric.PPR(n)=PPRval;
+                    % Evaluate PPR Uncertainty
+                    % John J Charonko Model
+                    [Ux,Uy,~,~,~,~]=calibration_based_uncertainty('PPR_Charonkomodel',PPRval,upper(tcorr));
+                    uncertainty2D.Upprx(n)=Ux;
+                    uncertainty2D.Uppry(n)=Uy;
+                    
+                    % Xue Model
+                    [~,~,UxLB,UxUB,UyLB,UyUB]=calibration_based_uncertainty('PPR_Xuemodel',PPRval,upper(tcorr));
+                    uncertainty2D.UpprxLB(n)=UxLB;
+                    uncertainty2D.UppryLB(n)=UyLB;
+                    uncertainty2D.UpprxUB(n)=UxUB;
+                    uncertainty2D.UppryUB(n)=UyUB;
+                    
+                end
+                
+                if uncertainty.miuncertainty==1
+                    %Autocorrelations
+                    P11 = f1.*conj(f1);
+                    P22 = f2.*conj(f2);
+                    Auto1 = ifftn(P11,'symmetric');
+                    Auto2 = ifftn(P22,'symmetric');
+                    Auto1 = Auto1(fftindy,fftindx);
+                    Auto2 = Auto2(fftindy,fftindx);
+                    Auto1=abs(Auto1);
+                    Auto2=abs(Auto2);
+                    nAuto1 = Auto1-min(Auto1(:)); % Autocorrelation plane of image 1
+                    nAuto2 = Auto2-min(Auto2(:)); % Autocorrelation plane of image 2
+                    
+                    % 3 pt Gaussian fit to Autocorrelation Diameter
+                    [~,~,~,~,Dauto1x3,Dauto1y3,~]=subpixel(nAuto1,Sx,Sy,cnorm,1,0,D);
+                    [~,~,~,~,Dauto2x3,Dauto2y3,~]=subpixel(nAuto2,Sx,Sy,cnorm,1,0,D);
+                    Diap1=sqrt(Dauto1x3*Dauto1y3/2);
+                    Diap2=sqrt(Dauto2x3*Dauto2y3/2);
+%                     
+%                     %Average Autocorrelation Diameter
+                    Autod=mean([Diap1 Diap2]);
+                    uncertainty2D.Autod(n)=Autod;
+                    
+                    %MI Calculation
+                    INTS1 = max(region1(:));
+                    INTS2 = max(region2(:));
+                    [MIval,~,~,~,~,~] = MI_Cal_SCC(G,nAuto1,nAuto2,INTS1,INTS2,Dauto1x3,Dauto1y3,Dauto2x3,Dauto2y3,Sx,Sy,fftindx,fftindy);
+                    SNRmetric.MI(n)=MIval;
+                    % Estimate MI uncertainty
+                    [~,~,UxLB,UxUB,UyLB,UyUB]=calibration_based_uncertainty('MI_Xuemodel',MIval,upper(tcorr));
+                    uncertainty2D.UmixLB(n)=UxLB;
+                    uncertainty2D.UmiyLB(n)=UyLB;
+                    uncertainty2D.UmixUB(n)=UxUB;
+                    uncertainty2D.UmiyUB(n)=UyUB;
+                    
+                end
+                if uncertainty.mcuncertainty==1
+                    if uncertainty.miuncertainty==1
+                        MIest=SNRmetric.MI(n);
+                        [Ixx,Iyy,biasx,biasy,Neff,~]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp(1),DYtemp(1),region1,region2,MIest);
+                        
+                    else %this should never happen - miuncertainty forced to 1 if mcuncertainty==1
+                        MIest=-1;
+                        [Ixx,Iyy,biasx,biasy,Neff,Autod]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp(1),DYtemp(1),region1,region2,MIest);
+                        uncertainty2D.Autod(n)=Autod;
+                    end
+                    uncertainty2D.Ixx(n)=Ixx;
+                    uncertainty2D.Iyy(n)=Iyy;
+                    uncertainty2D.biasx(n)=biasx;
+                    uncertainty2D.biasy(n)=biasy;
+                    uncertainty2D.Neff(n)=Neff;
+                    
+                end
+                    
+                
                 end
             end
         end
@@ -382,8 +496,8 @@ switch upper(tcorr)
     %Direct Cross Correlation
     case 'DCC'
         
-        %initialize correlation tensor
-        CC = zeros(Sy,Sx,length(X),imClass);
+        % %initialize correlation tensor
+        % CC = zeros(Sy,Sx,length(X),imClass);
         
         if size(im1,3) == 3
             Gens=zeros(res(1,2)+res(2,2)-1,res(1,1)+res(2,1)-1,3,imClass);
@@ -405,7 +519,7 @@ switch upper(tcorr)
                 ymin2 = y2- ceil(res(2,2)/2)+1;
                 ymax2 = y2+floor(res(2,2)/2);
                 
-                for r=1:size(im1,3);
+                for r=1:size(im1,3)
                     %find the image windows
                     zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r );
                     zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r );
@@ -552,7 +666,7 @@ switch upper(tcorr)
                 ymin2 = y2- ceil(Ny/2)+1;
                 ymax2 = y2+floor(Ny/2);
                 
-                for r=1:size(im1,3);
+                for r=1:size(im1,3)
                     %find the image windows
                     zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r);
                     zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r);
@@ -688,7 +802,7 @@ switch upper(tcorr)
                 G = abs(G);
                 
                 %subpixel estimation
-                [U(n,:),V(n,:),Ctemp,Dtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
+                [U(n,:),V(n,:),Ctemp,Dtemp,DXtemp,DYtemp]=subpixel(G,Sx,Sy,cnorm,Peaklocator,Peakswitch,D);
                 if Peakswitch
                     C(n,:)=Ctemp;
                     Dia(n,:)=Dtemp;
@@ -696,6 +810,120 @@ switch upper(tcorr)
                 if saveplane
                     Corrplanes(:,:,n) = G;
                 end
+                
+                 % Evaluate uncertainty options for RPC
+                if uncertainty.ppruncertainty==1
+                     %SNR calculation the other output arguments of Cal_SNR
+                     %are Maximum peak value,PRMSR,PCE,ENTROPY
+                    metric='PPR';
+                    PPRval = Cal_SNR(G,metric);
+                    % Save the SNR metrics
+                    SNRmetric.PPR(n)=PPRval;
+                    % Evaluate PPR Uncertainty
+                    % John J Charonko Model
+                    [Ux,Uy,~,~,~,~]=calibration_based_uncertainty('PPR_Charonkomodel',PPRval,upper(tcorr));
+                    uncertainty2D.Upprx(n)=Ux;
+                    uncertainty2D.Uppry(n)=Uy;
+                    
+                    % Xue Model
+                    [~,~,UxLB,UxUB,UyLB,UyUB]=calibration_based_uncertainty('PPR_Xuemodel',PPRval,upper(tcorr));
+                    uncertainty2D.UpprxLB(n)=UxLB;
+                    uncertainty2D.UppryLB(n)=UyLB;
+                    uncertainty2D.UpprxUB(n)=UxUB;
+                    uncertainty2D.UppryUB(n)=UyUB;
+                    
+                end
+                
+                if uncertainty.miuncertainty==1
+                    %Autocorrelations
+                    P11 = f1.*conj(f1);
+                    P22 = f2.*conj(f2);
+                    Auto1 = ifftn(P11,'symmetric');
+                    Auto2 = ifftn(P22,'symmetric');
+                    Auto1 = Auto1(fftindy,fftindx);
+                    Auto2 = Auto2(fftindy,fftindx);
+                    Auto1=abs(Auto1);
+                    Auto2=abs(Auto2);
+                    nAuto1 = Auto1-min(Auto1(:)); % Autocorrelation plane of image 1
+                    nAuto2 = Auto2-min(Auto2(:)); % Autocorrelation plane of image 2
+                    
+                    % 3 pt Gaussian fit to Autocorrelation Diameter
+                    [~,~,~,~,Dauto1x3,Dauto1y3,~]=subpixel(nAuto1,Sx,Sy,cnorm,1,0,D);
+                    [~,~,~,~,Dauto2x3,Dauto2y3,~]=subpixel(nAuto2,Sx,Sy,cnorm,1,0,D);
+                    Diap1=sqrt(Dauto1x3*Dauto1y3/2);
+                    Diap2=sqrt(Dauto2x3*Dauto2y3/2);
+%                     
+%                     %Average Autocorrelation Diameter
+                    Autod=mean([Diap1 Diap2]);
+                    uncertainty2D.Autod(n)=Autod;
+                    
+                    %MI Calculation
+                    INTS1 = max(region1(:));
+                    INTS2 = max(region2(:));
+                    
+                    %This is redundant - already defined from above:
+                    %Calculate the magnitude part of the correlation plane
+                    W = ones(Sy,Sx);
+                    Wden = sqrt(P21.*conj(P21));
+                    W(Wden~=0) = Wden(Wden~=0);
+                    
+                    % Replaced in favor of above section (which is a copy)
+                    % % This part should be checked original function was a
+                    % % bit confusing but from the paper this should work
+                    % W = ones(Sy,Sx);
+                    % Wden = sqrt(P21.*conj(P21));
+                    % % Wden1 = ifftn(Wden,'symmetric');
+                    % W(P21~=0) = Wden(P21~=0);
+
+                    magG = ifftn(W,'symmetric');
+                    magG = magG(fftindy,fftindx);
+                    
+                    [MIval,~,~,~,~,~] = MI_Cal_RPC(magG,nAuto1,nAuto2,INTS1,INTS2,Dauto1x3,Dauto1y3,Dauto2x3,Dauto2y3,Sx,Sy,fftindx,fftindy);
+                    SNRmetric.MI(n)=MIval;
+                    % Estimate MI uncertainty
+                    [~,~,UxLB,UxUB,UyLB,UyUB]=calibration_based_uncertainty('MI_Xuemodel',MIval,upper(tcorr));
+                    uncertainty2D.UmixLB(n)=UxLB;
+                    uncertainty2D.UmiyLB(n)=UyLB;
+                    uncertainty2D.UmixUB(n)=UxUB;
+                    uncertainty2D.UmiyUB(n)=UyUB;
+                    
+                end
+
+
+                % The uncertainty estimation using Moment of Correlation
+                % method for RPC needs to be figured out.
+                % JJC: For now just use the naive approach:
+                % P21 is stripped to R, the phase correlation for MC
+                % f1,f2 are only used for autocorr if MI is missing
+                % Sx,Sy are window sizes; D is RPC diameter
+                % Differences in RPC MI: use magG instead of G
+                % fftindx, fftindy are for fftshift
+                % G is used for diameter of xcorr peak, and for MI
+                % DXtemp,DYtemp are diameters of RPC xcorr peak from subpix
+                % but they may have multiple peaks so just send the first
+                % In MI calc, RPC uses magG, not G 
+                % Problem: G needs to be magG for MI, but just G for MC.
+                % Solution: switch to always computing MI outside of MC
+                % function - we do the work internally if missing anyway!
+                if uncertainty.mcuncertainty==1
+                    if uncertainty.miuncertainty==1
+                        MIest=SNRmetric.MI(n);
+                        [Ixx,Iyy,biasx,biasy,Neff,~]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp(1),DYtemp(1),region1,region2,MIest);
+                        
+                    else %this should never happen - miuncertainty forced to 1 if mcuncertainty==1
+                        MIest=-1;
+                        [Ixx,Iyy,biasx,biasy,Neff,Autod]=Moment_of_correlation(P21,f1,f2,Sx,Sy,cnorm,D,fftindx,fftindy,G,DXtemp(1),DYtemp(1),region1,region2,MIest);
+                        uncertainty2D.Autod(n)=Autod;
+                    end
+                    uncertainty2D.Ixx(n)=Ixx;
+                    uncertainty2D.Iyy(n)=Iyy;
+                    uncertainty2D.biasx(n)=biasx;
+                    uncertainty2D.biasy(n)=biasy;
+                    uncertainty2D.Neff(n)=Neff;
+                    
+                end
+
+
             end
         end
         
@@ -708,4 +936,14 @@ end
 %add DWO to estimation
 U = round(Uin)+U;
 V = round(Vin)+V;
+
+% Intializing SBRmetric and uncertainty 2D structure
+%initialize an empty state in case no uncertainty analysis is done
+if ~exist('SNRmetric','var')
+    SNRmetric     = 0;
+end
+if ~exist('uncertainty2D','var')
+    uncertainty2D = 0;
+end
+
 end

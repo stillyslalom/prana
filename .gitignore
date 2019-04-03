@@ -11,6 +11,7 @@
 *.db
 ExpSummary*
 .bzr*
+*.mex*
 
 #tif is ignored, but we need these:
 #logo.tif

@@ -170,7 +170,15 @@ numDefPasses    = zeros(P,1); % This stores the number of interative deform pass
 %directory named imDeform/?
 SaveIMdeform = str2double(Data.SaveIMdeform);
 
-
+% initializing uncertainty options
+uncertainty.Uncswitch = 0;
+uncertainty.ppruncertainty  = 0;
+uncertainty.miuncertainty   = 0;
+uncertainty.imuncertainty   = 0;
+uncertainty.mcuncertainty   = 0;
+uncertainty = repmat(uncertainty,[P,1]);
+uncertainty2D=0;
+SNRmetric=0;
 
 %read data info for each pass
 for e=1:P
@@ -259,6 +267,47 @@ for e=1:P
         Valoptions(e).Peakratio_thresh  = 0;
     end
     
+    % checking if uncertainty options are checked:
+    % Leave all methods set to 0 (default set above) if uncertainty 
+    % estimates are turned off.
+    % None of the uncertainty methods work if correlation method is SPC, so
+    % disable them.
+    if ischar(A.uncertaintyestimate)
+        uncertainty(e).Uncswitch=str2double(A.uncertaintyestimate);
+    else
+        uncertainty(e).Uncswitch=A.uncertaintyestimate;
+    end
+    if uncertainty(e).Uncswitch && ~strcmpi(Corr{e},'SPC')
+        if ischar(A.ppruncertainty)
+            uncertainty(e).ppruncertainty=str2double(A.ppruncertainty);
+        else
+            uncertainty(e).ppruncertainty=A.ppruncertainty;
+        end
+        if ischar(A.miuncertainty)
+            uncertainty(e).miuncertainty=str2double(A.miuncertainty);
+        else
+            uncertainty(e).miuncertainty=A.miuncertainty;
+        end
+        if ischar(A.imuncertainty)
+            uncertainty(e).imuncertainty=str2double(A.imuncertainty);
+        else
+            uncertainty(e).imuncertainty=A.imuncertainty;
+        end
+        if ischar(A.mcuncertainty)
+            uncertainty(e).mcuncertainty=str2double(A.mcuncertainty);
+        else
+            uncertainty(e).mcuncertainty=A.mcuncertainty;
+        end
+    else
+        %even if the method is on, don't do the work if master uncertainty 
+        %anlayis switch is turned off
+    end
+    
+    %if mcuncertainty is on, we need to calculate miuncertainty too, so
+    %force it on
+    if uncertainty(e).mcuncertainty
+        uncertainty(e).miuncertainty = 1;
+    end
     
     extrapeaks(e)=str2double(A.valextrapeaks);
     
@@ -274,6 +323,13 @@ for e=1:P
     
 end
 
+% load dynamic mask and flip coordinates
+if strcmp(Data.masktype,'dynamic')
+    q=1;
+    %disp([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))])
+    mask = cast(imread([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))]),imClass);
+    mask = flipud(mask);
+end
 
 maskSize=size(mask);
 maskSize(3)=size(mask,3);
@@ -406,6 +462,7 @@ switch char(M)
             
             % load dynamic mask and flip coordinates
             if strcmp(Data.masktype,'dynamic')
+                disp([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))])
                 mask = cast(imread([maskbase sprintf(['%0.' Data.maskzeros 'i.' Data.maskext],maskname(q))]),imClass);
                 mask = flipud(mask);
             end
@@ -508,12 +565,12 @@ switch char(M)
                     % Deform images according to the interpolated velocity fields
                     for k = 1:nChannels % Loop over all of the color channels in the image
                         if Iminterp == 1 % Sinc interpolation (without blackman window)
-                            im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1+0.5, YD1+0.5, 8, 'sinc');
-                            im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'sinc');
+                            im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1 + 0.5, YD1 + 0.5, 3, 0);
+                            im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2 + 0.5, 3, 0);
                             
                         elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                            im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1+0.5, YD1+0.5, 8, 'blackman');
-                            im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'blackman');
+                            im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1 + 0.5, YD1 + 0.5, 6, 1);
+                            im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2 + 0.5, 6, 1);
                         
                         elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                             im1d(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic',0);
@@ -560,9 +617,9 @@ switch char(M)
                     % Deform images according to the interpolated velocity fields
                     for k = 1:nChannels % Loop over all of the color channels in the image
                         if Iminterp == 1 % Sinc interpolation (without blackman window)
-                            im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'sinc');
+                            im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2 + 0.5, 3, 0);
                         elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                            im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'blackman');
+                            im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2 + 0.5, 6, 1);
                         elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                             im2d(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic',0);
                         elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
@@ -636,7 +693,99 @@ switch char(M)
                 if (e~=1 || defloop~=1 || VelInputFile) && ~isempty(regexpi(M,'Deform','once'))          %then don't offset windows, images already deformed
                     %if Corr(e)<4
                     if ~strcmpi(Corr{e},'SPC')
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0));
+%                         keyboard;
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        
+                        if uncertainty(e).imuncertainty==1
+                            % Perform image matching uncertainty estimation for
+                            % window deformation pass
+                            %First deform the images based on current
+                            %velocity estimate Uc,Vc,
+                            
+%                             %convert to matrix if necessary
+%                             if size(X,2)==1
+%                                 [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
+%                             end
+                            
+                            %reshape from list of grid points to matrix
+                            Xt=reshape(X,[S(1),S(2)]);
+                            Yt=reshape(Y,[S(1),S(2)]);
+                            % Ut=reshape(Uc(:,1),[S(1),S(2)]);
+                            % Vt=reshape(Vc(:,1),[S(1),S(2)]);
+                            %Where Eval<0, no correlation was performed and Uc, etc are
+                            %missing values.  Use Eval to fill in complete matrices U,V
+                            %over all grid points X,Y.
+                            %U and V are temporary versions, and are likely
+                            %to be overwritten later.  Use the same names
+                            %here (instead of a temporary like Ut) for
+                            %efficiency.
+                            if find_extrapeaks
+                                U=zeros(size(X,1),3,imClass);
+                                V=zeros(size(X,1),3,imClass);
+                                U(repmat(Eval>=0,[1 3]))=Uc;
+                                V(repmat(Eval>=0,[1 3]))=Vc;
+                            else
+                                U=zeros(size(X),imClass);
+                                V=zeros(size(X),imClass);
+                                U(Eval>=0)=Uc;
+                                V(Eval>=0)=Vc;
+                            end
+
+                            
+                            %remove nans from data, replace with zeros
+%                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
+                            
+                            %velocity interpolation -
+                            %resample U(X,Y) and V(X,Y) onto UI(XI,YI) and
+                            %VI(XIt,YIt) where XI and YI are a list of every
+                            %pixel in the image plane. Velinterp is the type of
+                            %interpolation to use.
+                            UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
+                            VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
+                            
+                            XD1t = XI-UI/2 ;
+                            YD1t = YI-VI/2;
+                            XD2t = XI+UI/2;
+                            YD2t = YI+VI/2;
+                            
+                            % Preallocate memory for deformed images.
+                            im1dt = zeros(size(im1),imClass);
+                            im2dt = zeros(size(im2),imClass);
+                            
+                            % Deform images according to the interpolated velocity fields
+                            for k = 1:nChannels % Loop over all of the color channels in the image
+                                if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+                                    
+                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                                    
+                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic', 0);
+                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic', 0);
+                                    
+                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                    bsplDegree = 7;  %order of the b-spline (0-7)
+                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1+0.5, YD1+0.5, 0);
+                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
+                                end
+                            end
+                            
+                            
+                            % Run image matching on deformed images
+                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                            uncertainty2D.Uimx=Uimx;
+                            uncertainty2D.Uimy=Uimy;
+                            uncertainty2D.Nump=Nump;
+                        else
+                            %leave empty for efficiency
+                            % uncertainty2D.Uimx=zeros(size(Xc));
+                            % uncertainty2D.Uimy=zeros(size(Xc));
+                            % uncertainty2D.Nump=zeros(size(Xc));
+                        end
+                        
                         if strcmpi(M,'ForwardDeform')
                             % use coordinate system for deformed second
                             % frame to estimate deformation tensor and
@@ -782,13 +931,28 @@ switch char(M)
                         if any(isnan(Ub(Eval>=0)))
                             keyboard
                         end
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        
+                        if uncertainty(e).imuncertainty==1
+                            % Perform image matching uncertainty estimation for
+                            % first pass
+                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
+                            uncertainty2D.Uimx=Uimx;
+                            uncertainty2D.Uimy=Uimy;
+                            uncertainty2D.Nump=Nump;
+                        else
+                            %leave empty
+                            % uncertainty2D.Uimx=zeros(size(X));
+                            % uncertainty2D.Uimy=zeros(size(X));
+                            % uncertainty2D.Nump=zeros(size(X));
+                        end
+    
                     else
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
                     end
                 end
-                
+               
                 %Where Eval<0, no correlation was performed and Uc, etc are
                 %missing values.  Use Eval to fill in complete matrices U,V
                 %over all grid points X,Y.
@@ -839,6 +1003,138 @@ switch char(M)
                         Dval=[];
                     end
                 end
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+                %---- This section is for Uncertainty value conversion to
+                %matrix and MC method gradient correction---------% 
+                if uncertainty(e).ppruncertainty==1
+                    %can't do these in place, so need to use an
+                    %intermediate variable
+                    temp_SNR = SNRmetric.PPR;
+                    SNRmetric.PPR          = zeros([S(1),S(2)],imClass);
+                    SNRmetric.PPR(Eval>=0) = temp_SNR;
+                    
+                    temp_unc = uncertainty2D.Upprx;
+                    uncertainty2D.Upprx         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Upprx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Uppry;
+                    uncertainty2D.Uppry         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Uppry(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UpprxLB;
+                    uncertainty2D.UpprxLB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UpprxLB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UppryLB;
+                    uncertainty2D.UppryLB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UppryLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UpprxUB;
+                    uncertainty2D.UpprxUB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UpprxUB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UppryUB;
+                    uncertainty2D.UppryUB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UppryUB(Eval>=0)= temp_unc;
+                    
+                    clear temp_SNR temp_unc
+                end
+                if uncertainty(e).miuncertainty==1
+                    temp_SNR = SNRmetric.MI;
+                    SNRmetric.MI          = zeros([S(1),S(2)],imClass);
+                    SNRmetric.MI(Eval>=0) = temp_SNR;
+                    
+                    temp_unc = uncertainty2D.UmixLB;
+                    uncertainty2D.UmixLB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UmixLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UmiyLB;
+                    uncertainty2D.UmiyLB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UmiyLB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.UmixUB;
+                    uncertainty2D.UmixUB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UmixUB(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.UmiyUB;
+                    uncertainty2D.UmiyUB         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.UmiyUB(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Autod;
+                    uncertainty2D.Autod         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Autod(Eval>=0)= temp_unc;
+
+                    clear temp_SNR temp_unc
+                end
+                if uncertainty(e).mcuncertainty==1                    
+                    temp_unc = uncertainty2D.Ixx;
+                    uncertainty2D.Ixx         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Ixx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Iyy;
+                    uncertainty2D.Iyy         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Iyy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.biasx;
+                    uncertainty2D.biasx         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.biasx(Eval>=0)= temp_unc;
+
+                    temp_unc = uncertainty2D.biasy;
+                    uncertainty2D.biasy         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.biasy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Neff;
+                    uncertainty2D.Neff         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Neff(Eval>=0)= temp_unc;
+
+                    clear temp_unc
+                end
+                if uncertainty(e).imuncertainty==1
+                    temp_unc = uncertainty2D.Uimx;
+                    uncertainty2D.Uimx         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Uimx(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Uimy;
+                    uncertainty2D.Uimy         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Uimy(Eval>=0)= temp_unc;
+                    
+                    temp_unc = uncertainty2D.Nump;
+                    uncertainty2D.Nump         = zeros([S(1),S(2)],imClass);
+                    uncertainty2D.Nump(Eval>=0)= temp_unc;
+
+                    clear temp_unc
+                end
+                
+                
+                %Gradient correction for MC method
+                if uncertainty(e).mcuncertainty==1
+                    % Get the velocity field in matrix form
+                    Utemp=reshape(Uval,[S(1),S(2)]);
+                    Vtemp=reshape(Vval,[S(1),S(2)]);
+                    % Calculate gradient using second order central
+                    % difference
+%                     keyboard;
+                    Udiff=socdiff(Utemp,Gres(e,1),1);
+                    Vdiff=socdiff(Vtemp,Gres(e,2),2);
+                    
+                    %Gradient correction using velocity gradient field Udiff and Vdiff
+                    Ixxt= real(sqrt(uncertainty2D.Ixx.^2 - (uncertainty2D.Autod.^2/16).*(Udiff).^2 ));
+                    Iyyt= real(sqrt(uncertainty2D.Iyy.^2 - (uncertainty2D.Autod.^2/16).*(Vdiff).^2 ));
+                    
+                    
+                    %MC uncertainty after scaling and bias correction
+                    uncertainty2D.MCx=sqrt(uncertainty2D.biasx.^2+(Ixxt.^2)./uncertainty2D.Neff);
+                    uncertainty2D.MCy=sqrt(uncertainty2D.biasy.^2+(Iyyt.^2)./uncertainty2D.Neff);
+                else
+                    %leave empty
+                    % uncertainty2D.MCx=zeros(S(1),S(2));
+                    % uncertainty2D.MCy=zeros(S(1),S(2));
+                end
+                
+%                 keyboard;
+                
+                %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
                 
                 % --- Iterative Deformation Check ---
                 % This block checks too see if the deformation has
@@ -956,9 +1252,9 @@ switch char(M)
                     
                     if str2double(Data.multiplematout)
                         if ~isempty(regexpi(M,'Deform','once'))
-                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','numDefPasses')
+                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','numDefPasses','uncertainty2D','SNRmetric')
                         else
-                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di')
+                            save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(q))]),'X','Y','U','V','Eval','C','Di','uncertainty2D','SNRmetric')
                         end
                     end
                     % This saves the correlation planes if that selection
@@ -1044,16 +1340,16 @@ switch char(M)
                             % Deform images according to the interpolated velocity fields
                             for k = 1:nChannels % Loop over all of the color channels in the image
                                 if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1+0.5, YD1+0.5, 8, 'sinc');
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'sinc');
+                                    im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1 + 0.5, YD1+0.5, 3, 0);
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2+0.5, 3, 0);
 
                                 elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1+0.5, YD1+0.5, 8, 'blackman');
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'blackman');
+                                    im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1 + 0.5, YD1 + 0.5, 6, 1);
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2 + 0.5, YD2 + 0.5, 6, 1);
                                     
                                 elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                    im1d(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic',0);
-                                    im2d(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic',0);
+                                    im1d(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic', 0);
+                                    im2d(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic', 0);
                                     
                                 elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
                                     bsplDegree = 7;  %order of the b-spline (0-7)
@@ -1061,15 +1357,6 @@ switch char(M)
                                     im2d(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
                                 end
                             end
-
-                            % keyboard
-                            % figure(1),imagesc(im1),colormap(gray),axis image xy,xlabel('im1')
-                            % figure(2),imagesc(im2),colormap(gray),axis image xy,xlabel('im2')
-                            % figure(3),imagesc(im1d),colormap(gray),axis image xy,xlabel('im1d')
-                            % figure(4),imagesc(im2d),colormap(gray),axis image xy,xlabel('im2d')
-                            % pause
-                            % imwrite(uint8(im1d),[pltdirec char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'ia.png' ],I1(q))]);
-                            % imwrite(uint8(im2d),[pltdirec char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'ib.png' ],I1(q))]);
 
                             if defloop == 1
                                 deformtime(e+1,defloop)=toc(t1);
@@ -1098,27 +1385,21 @@ switch char(M)
                             im2d = zeros(size(im2),imClass);
 
                             % Deform images according to the interpolated velocity fields
-                            for k = 1:nChannels % Loop over all of the color channels in the image
+                            for k = 1 : nChannels % Loop over all of the color channels in the image
                                 if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'sinc');
-                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2+0.5, YD2+0.5, 8, 'blackman');
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2+0.5, YD2+0.5, 3, 0);
+                                
+								elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2+0.5, YD2+0.5, 6, 1);
+									
                                 elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                                     im2d(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic',0);
-                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                
+								elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
                                     bsplDegree = 7;  %order of the b-spline (0-7)
                                     im2d(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
                                 end
                             end
-
-                            % keyboard
-                            % figure(1),imagesc(im1),colormap(gray),axis image xy,xlabel('im1')
-                            % figure(2),imagesc(im2),colormap(gray),axis image xy,xlabel('im2')
-                            % figure(3),imagesc(im1d),colormap(gray),axis image xy,xlabel('im1d')
-                            % figure(4),imagesc(im2d),colormap(gray),axis image xy,xlabel('im2d')
-                            % pause
-                            % imwrite(uint8(im1d),[pltdirec char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'ia.png' ],I1(q))]);
-                            % imwrite(uint8(im2d),[pltdirec char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'ib.png' ],I1(q))]);
 
                             if defloop == 1
                                 deformtime(e+1,defloop)=toc(t1);
@@ -1358,7 +1639,7 @@ switch char(M)
                             
                             t1=tic;
                             % translate pixel locations, but
-                            % since sincBlackmanInterp2 assumes
+                            % since the interpolation functions assume
                             % coordinate system is pixel-centered, we need
                             % to convert back to index-coordinates for the
                             % deform.
@@ -1380,12 +1661,12 @@ switch char(M)
                             % memory at the expense of some speed here.
                             for k = 1:nChannels % Loop over all of the color channels in the image
                                 if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1, YD1, 8, 'sinc');
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2, YD2, 8, 'sinc');
+                                    im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1, YD1, 3, 0);
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2, YD2, 3, 0);
                                     
                                 elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1, YD1, 8, 'blackman');
-                                    im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2, YD2, 8, 'blackman');
+                                    im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1, YD1, 6, 1);
+                                    im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2, YD2, 6, 1);
                                     
                                 elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                                     im1d(:, :, k) = interp2(im1(:, :, k), XD1, YD1, 'cubic',0);
@@ -1405,9 +1686,9 @@ switch char(M)
                         %correlate image pair and average correlations
                         %                      [Xc,Yc,CC]=PIVensemble(im1,im2,Corr(e),Wsize(e,:),Wres(e, :, :),0,D(e),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         if strcmpi(M,'EDeform') && (e~=1 || defloop ~=1  || VelInputFile)
-                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0));
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0));
                         else
-                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         end
                         
                         if ~strcmpi(Corr{e},'SPC')
@@ -1516,7 +1797,7 @@ switch char(M)
                         t1=tic;
                         
                         % translate pixel locations, but
-                        % since sincBlackmanInterp2 assumes
+                        % since the interpolation functions assume
                         % coordinate system is pixel-centered, we need
                         % to convert back to index-coordinates for the
                         % deform.
@@ -1536,12 +1817,12 @@ switch char(M)
                         % but I'm trying to save memory at the expense of some speed here.
                         for k = 1:nChannels % Loop over all of the color channels in the image
                             if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1, YD1, 8, 'sinc');
-                                im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2, YD2, 8, 'sinc');
+                                im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1, YD1, 3, 0);
+                                im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2, YD2, 3, 0);
                                 
                             elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                im1d(:, :, k) = sincBlackmanInterp2(im1(:, :, k), XD1, YD1, 8, 'blackman');
-                                im2d(:, :, k) = sincBlackmanInterp2(im2(:, :, k), XD2, YD2, 8, 'blackman');
+                                im1d(:, :, k) = whittaker_blackman(im1(:, :, k), XD1, YD1, 6, 1);
+                                im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2, YD2, 6, 1);
                                 
                             elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                                 im1d(:, :, k) = interp2(im1(:, :, k), XD1, YD1, 'cubic',0);
