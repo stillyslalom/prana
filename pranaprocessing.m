@@ -693,269 +693,245 @@ switch char(M)
                 if (e~=1 || defloop~=1 || VelInputFile) && ~isempty(regexpi(M,'Deform','once'))          %then don't offset windows, images already deformed
                     %if Corr(e)<4
                     if ~strcmpi(Corr{e},'SPC')
-%                         keyboard;
+                        % keyboard;
                         [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
                         
-                        if uncertainty(e).imuncertainty==1
-                            % Perform image matching uncertainty estimation for
-                            % window deformation pass
-                            %First deform the images based on current
-                            %velocity estimate U=Uc+Ub,V=Vc+Vb,
-                            
-%                             %convert to matrix if necessary
-%                             if size(X,2)==1
-%                                 [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
-%                             end
-                            
-                            %reshape from list of grid points to matrix
-                            Xt=reshape(X,[S(1),S(2)]);
-                            Yt=reshape(Y,[S(1),S(2)]);
-                            % Ut=reshape(Uc(:,1),[S(1),S(2)]);
-                            % Vt=reshape(Vc(:,1),[S(1),S(2)]);
-                            %Where Eval<0, no correlation was performed and Uc, etc are
-                            %missing values.  Use Eval to fill in complete matrices U,V
-                            %over all grid points X,Y.
-                            %U and V are temporary versions, and are likely
-                            %to be overwritten later.  Use the same names
-                            %here (instead of a temporary like Ut) for
-                            %efficiency.
-                            %
-                            if find_extrapeaks
-                                U=zeros(size(X,1),3,imClass);
-                                V=zeros(size(X,1),3,imClass);
-                                U(repmat(Eval>=0,[1 3]))=Uc + repmat(Ub(Eval>=0),[1 3]);
-                                V(repmat(Eval>=0,[1 3]))=Vc + repmat(Vb(Eval>=0),[1 3]);
-                            else
-                                U=zeros(size(X),imClass);
-                                V=zeros(size(X),imClass);
-                                U(Eval>=0)=Uc + Ub(Eval>=0);
-                                V(Eval>=0)=Vc + Vb(Eval>=0);
-                            end
-
-                            
-                            %remove nans from data, replace with zeros
-%                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
-                            
-                            %velocity interpolation -
-                            %resample U(X,Y) and V(X,Y) onto UI(XI,YI) and
-                            %VI(XIt,YIt) where XI and YI are a list of every
-                            %pixel in the image plane. Velinterp is the type of
-                            %interpolation to use.
-                            UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
-                            VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
-                            
-                            if strcmpi(M,'Deform')
-                                XD1t = XI-UI/2 ;
-                                YD1t = YI-VI/2;
-                                XD2t = XI+UI/2;
-                                YD2t = YI+VI/2;
-
-                                % Preallocate memory for deformed images.
-                                im1dt = zeros(size(im1),imClass);
-                                im2dt = zeros(size(im2),imClass);
-
-                                % Deform images according to the interpolated velocity fields
-                                for k = 1:nChannels % Loop over all of the color channels in the image
-                                    if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                        im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
-                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
-
-                                    elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                        im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
-                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
-
-                                    elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                        im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
-                                        im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
-
-                                    elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                                        bsplDegree = 7;  %order of the b-spline (0-7)
-                                        im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
-                                        im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
-                                    end
-                                end
-                            elseif strcmpi(M,'ForwardDeform') %only the 2nd image is deformed
-                                XD1t = XI   ;
-                                YD1t = YI   ;
-                                XD2t = XI+UI;
-                                YD2t = YI+VI;
-                                
-                                % Preallocate memory for deformed images.
-                                im1dt = im1;
-                                im2dt = zeros(size(im2),imClass);
-                                
-                                % Deform images according to the interpolated velocity fields
-                                for k = 1 : nChannels % Loop over all of the color channels in the image
-                                    if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 3, 0);
-                                        
-                                    elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
-                                        
-                                    elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                        im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic',0);
-                                        
-                                    elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                                        bsplDegree = 7;  %order of the b-spline (0-7)
-                                        im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
-                                    end
-                                end
-                            else
-                                error('Trying to use deform with IM when not a deform method: Check pass method name.')
-                            end
-                            
-                            % Run image matching on deformed images
-                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
-                            uncertainty2D.Uimx=Uimx;
-                            uncertainty2D.Uimy=Uimy;
-                            uncertainty2D.Nump=Nump;
-                        else
-                            %leave empty for efficiency
-                            % uncertainty2D.Uimx=zeros(size(Xc));
-                            % uncertainty2D.Uimy=zeros(size(Xc));
-                            % uncertainty2D.Nump=zeros(size(Xc));
-                        end
-                        
-                        if strcmpi(M,'ForwardDeform')
-                            % use coordinate system for deformed second
-                            % frame to estimate deformation tensor and
-                            % transform of subpixel corrector at t0 to
-                            % deformed direction at t1.
-                            
-                            %                             %OPTION 1:
-                            %                             % use the local deformation field in XD2 and
-                            %                             % YD2 to estimate using central differences the
-                            %                             % local strain rate tensor and use that to
-                            %                             % transform Uc and Vc @ t0 to t1.
-                            %                             %Question: what grid should the derivatives be
-                            %                             % calculated over - at the pixel level, or the
-                            %                             % vector level?
-                            %
-                            %                             % Need to figure out which XD2 and YD2, defined
-                            %                             % over every pixel, correspond to the subset
-                            %                             % embodied by Xc and Yc.  Don't forget to
-                            %                             % make sure both use either pixel or grid
-                            %                             % coordinate systems, not mixed!
-                            %
-                            %                             %loop over something similar to this for all
-                            %                             %vectors positions Xc and Yc:
-                            %
-                            %                             %could substitute XD1 for XI here?
-                            %                             Rest = [ (XD2(1,2)-XD2(1,1))/(XI(1,2)-XI(1,1)) , (XD2(2,1)-XD2(1,1))/(YI(2,1)-YI(1,1)) ; ...
-                            %                                      (YD2(1,2)-YD2(1,1))/(XI(1,2)-XI(1,1)) , (YD2(2,1)-YD2(1,1))/(YI(2,1)-YI(1,1)) ];
-                            %
-                            %                             %this assumes Uc and Vc are column vectors
-                            %                             UcVc = Rest*[Uc.';Vc.'];
-                            %                             Uc = UcVc(1,:).';
-                            %                             Vc = UcVc(2,:).';
-                            
-                            
-                            %elseif strcmpi(M,'FowardDeformInterp')
-                            % use coordinate system for deformed second
-                            % frame to estimate deformation tensor and
-                            % transform of subpixel corrector at t0 to
-                            % deformed direction at t1.
-                            
-                            %OPTION 2:
-                            % use interpolation to predict where a point
-                            % shifted by (Uc,Vc) in (XD1,YD1) would fall in
-                            % a deformed (XD2,YD2) system
-                            
-                            %first, figure out where vector centers are in (XD2,YD2)
-                            XDc = interp2(XI,YI,XD2,Xc,Yc,'cubic');
-                            YDc = interp2(XI,YI,YD2,Xc,Yc,'cubic');
-                            %if shift takes us outside image domain, just
-                            %return a NaN, we don't know where that point
-                            %will go
-                            if find_extrapeaks
-                                %there will be 3 velocity fields in Uc and Vc, so repmat vector origins
-                                U2 = interp2(XI,YI,XD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(XDc,[1,3]);
-                                V2 = interp2(XI,YI,YD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(YDc,[1,3]);
-                            else
-                                %only 1 velocity field is returned, use origins directly
-                                U2 = interp2(XI,YI,XD2,Xc+Uc,Yc+Vc,'cubic',NaN) - XDc;
-                                V2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'cubic',NaN) - YDc;
-                            end
-                            
-                            %if we have NaN values, we don't know how to
-                            %correct the shift, so just use the raw value.
-                            Uc(~isnan(U2)) = U2(~isnan(U2));
-                            Vc(~isnan(V2)) = V2(~isnan(V2));
-                            
-                            clear U2 V2
-                            
-                            %Not sure what do with central difference
-                            %deform correction yet - probably this section
-                            %needs to be moved down to right before the
-                            %deformation actually occurs?
-                            %                         elseif strcmpi(M,'Deform')
-                            %                             % use coordinate system for deformed 1st & 2nd
-                            %                             % frames to estimate deformation tensor and
-                            %                             % transform of subpixel corrector at t1/2 to
-                            %                             % deformed direction at t0 and t1.
-                            %
-                            %                             %OPTION 2:
-                            %                             % use interpolation to predict where a point
-                            %                             % shifted by +/-(Uc/2,Vc/2) from (XI,YI) would fall in
-                            %                             % a deformed (XD1,YD1) and (XD2,YD2) systems
-                            %
-                            %                             %first, figure out where vector centers are in (XD2,YD2)
-                            %                             XDc1 = interp2(XI,YI,XD1,Xc,Yc,'linear');
-                            %                             YDc1 = interp2(XI,YI,YD1,Xc,Yc,'linear');
-                            %                             XDc2 = interp2(XI,YI,XD2,Xc,Yc,'linear');
-                            %                             YDc2 = interp2(XI,YI,YD2,Xc,Yc,'linear');
-                            %                             %if shift takes us outside image domain, just
-                            %                             %return a NaN, we don't know where that point
-                            %                             %will go
-                            %                             if Peakswitch(e) || (Valswitch(e) && extrapeaks(e))
-                            %                                 %there will be 3 velocity fields in Uc and Vc, so repmat vector origins
-                            %                                 U1 = interp2(XI,YI,XD1,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(XDc1,[1,3]);
-                            %                                 V1 = interp2(XI,YI,YD1,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(YDc1,[1,3]);
-                            %                                 U2 = interp2(XI,YI,XD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(XDc2,[1,3]);
-                            %                                 V2 = interp2(XI,YI,YD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(YDc2,[1,3]);
-                            %                             else
-                            %                                 %only 1 velocity field is returned, use origins directly
-                            %                                 U1 = interp2(XI,YI,YD1,Xc+Uc,Yc+Vc,'linear',NaN) - XDc1;
-                            %                                 V1 = interp2(XI,YI,YD1,Xc+Uc,Yc+Vc,'linear',NaN) - YDc1;
-                            %                                 U2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'linear',NaN) - XDc2;
-                            %                                 V2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'linear',NaN) - YDc2;
-                            %                             end
-                            %
-                            %                             %if we have NaN values, we don't know how to
-                            %                             %correct the shift, so just use the raw value.
-                            %                             U1(isnan(U1)) = Uc(isnan(U1));
-                            %                             V1(isnan(V1)) = Vc(isnan(V1));
-                            %                             U2(isnan(U2)) = Uc(isnan(U2));
-                            %                             V2(isnan(V2)) = Vc(isnan(V2));
-                            %
-                            %                             %clear U2 V2
-                            
-                        else
-                            %other methods just add bulk offset predictor
-                            %back to calculated subpixel corrector
-                            % do nothing to Uc and Vc
-                        end
-                        
-                        %reincorporate deformation as velocity for next pass
-                        if find_extrapeaks
-                            %there will be 3 velocity fields in Uc an Vc, so repmat bulk offset
-                            Uc = Uc + repmat(Ub(Eval>=0),[1 3]);
-                            Vc = Vc + repmat(Vb(Eval>=0),[1 3]);
-                        else
-                            %only 1 velocity field is returned, use bulk offset directly
-                            Uc = Uc + Ub(Eval>=0);
-                            Vc = Vc + Vb(Eval>=0);
-                        end
                     else %then was SPC
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
                         %Sam deleted the Cc output from PIVPhaseCorr - why?  because we don't use it? But it's needed for Dc in next line?
                         %[Xc,Yc,Uc,Vc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
-                        
-                        Uc = Uc + Ub(Eval>=0);   %reincorporate deformation as velocity for next pass
+                    end
+                    
+                    % use coordinate system for deformed second
+                    % frame to estimate deformation tensor and
+                    % transform of subpixel corrector at t0 to
+                    % deformed direction at t1.
+                    if strcmpi(M,'ForwardDeform')
+
+                        %                             %OPTION 1:
+                        %                             % use the local deformation field in XD2 and
+                        %                             % YD2 to estimate using central differences the
+                        %                             % local strain rate tensor and use that to
+                        %                             % transform Uc and Vc @ t0 to t1.
+                        %                             %Question: what grid should the derivatives be
+                        %                             % calculated over - at the pixel level, or the
+                        %                             % vector level?
+                        %
+                        %                             % Need to figure out which XD2 and YD2, defined
+                        %                             % over every pixel, correspond to the subset
+                        %                             % embodied by Xc and Yc.  Don't forget to
+                        %                             % make sure both use either pixel or grid
+                        %                             % coordinate systems, not mixed!
+                        %
+                        %                             %loop over something similar to this for all
+                        %                             %vectors positions Xc and Yc:
+                        %
+                        %                             %could substitute XD1 for XI here?
+                        %                             Rest = [ (XD2(1,2)-XD2(1,1))/(XI(1,2)-XI(1,1)) , (XD2(2,1)-XD2(1,1))/(YI(2,1)-YI(1,1)) ; ...
+                        %                                      (YD2(1,2)-YD2(1,1))/(XI(1,2)-XI(1,1)) , (YD2(2,1)-YD2(1,1))/(YI(2,1)-YI(1,1)) ];
+                        %
+                        %                             %this assumes Uc and Vc are column vectors
+                        %                             UcVc = Rest*[Uc.';Vc.'];
+                        %                             Uc = UcVc(1,:).';
+                        %                             Vc = UcVc(2,:).';
+
+
+                        %elseif strcmpi(M,'FowardDeformInterp')
+                        % use coordinate system for deformed second
+                        % frame to estimate deformation tensor and
+                        % transform of subpixel corrector at t0 to
+                        % deformed direction at t1.
+
+                        %OPTION 2:
+                        % use interpolation to predict where a point
+                        % shifted by (Uc,Vc) in (XD1,YD1) would fall in
+                        % a deformed (XD2,YD2) system
+
+                        %first, figure out where vector centers are in (XD2,YD2)
+                        XDc = interp2(XI,YI,XD2,Xc,Yc,'cubic');
+                        YDc = interp2(XI,YI,YD2,Xc,Yc,'cubic');
+                        %if shift takes us outside image domain, just
+                        %return a NaN, we don't know where that point
+                        %will go
+                        if find_extrapeaks
+                            %there will be 3 velocity fields in Uc and Vc, so repmat vector origins
+                            U2 = interp2(XI,YI,XD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(XDc,[1,3]);
+                            V2 = interp2(XI,YI,YD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(YDc,[1,3]);
+                        else
+                            %only 1 velocity field is returned, use origins directly
+                            U2 = interp2(XI,YI,XD2,Xc+Uc,Yc+Vc,'cubic',NaN) - XDc;
+                            V2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'cubic',NaN) - YDc;
+                        end
+
+                        %if we have NaN values, we don't know how to
+                        %correct the shift, so just use the raw value.
+                        Uc(~isnan(U2)) = U2(~isnan(U2));
+                        Vc(~isnan(V2)) = V2(~isnan(V2));
+
+                        clear U2 V2
+
+                        %Not sure what do with central difference
+                        %deform correction yet - probably this section
+                        %needs to be moved down to right before the
+                        %deformation actually occurs?
+                        %                         elseif strcmpi(M,'Deform')
+                        %                             % use coordinate system for deformed 1st & 2nd
+                        %                             % frames to estimate deformation tensor and
+                        %                             % transform of subpixel corrector at t1/2 to
+                        %                             % deformed direction at t0 and t1.
+                        %
+                        %                             %OPTION 2:
+                        %                             % use interpolation to predict where a point
+                        %                             % shifted by +/-(Uc/2,Vc/2) from (XI,YI) would fall in
+                        %                             % a deformed (XD1,YD1) and (XD2,YD2) systems
+                        %
+                        %                             %first, figure out where vector centers are in (XD2,YD2)
+                        %                             XDc1 = interp2(XI,YI,XD1,Xc,Yc,'linear');
+                        %                             YDc1 = interp2(XI,YI,YD1,Xc,Yc,'linear');
+                        %                             XDc2 = interp2(XI,YI,XD2,Xc,Yc,'linear');
+                        %                             YDc2 = interp2(XI,YI,YD2,Xc,Yc,'linear');
+                        %                             %if shift takes us outside image domain, just
+                        %                             %return a NaN, we don't know where that point
+                        %                             %will go
+                        %                             if Peakswitch(e) || (Valswitch(e) && extrapeaks(e))
+                        %                                 %there will be 3 velocity fields in Uc and Vc, so repmat vector origins
+                        %                                 U1 = interp2(XI,YI,XD1,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(XDc1,[1,3]);
+                        %                                 V1 = interp2(XI,YI,YD1,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(YDc1,[1,3]);
+                        %                                 U2 = interp2(XI,YI,XD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(XDc2,[1,3]);
+                        %                                 V2 = interp2(XI,YI,YD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'linear',NaN) - repmat(YDc2,[1,3]);
+                        %                             else
+                        %                                 %only 1 velocity field is returned, use origins directly
+                        %                                 U1 = interp2(XI,YI,YD1,Xc+Uc,Yc+Vc,'linear',NaN) - XDc1;
+                        %                                 V1 = interp2(XI,YI,YD1,Xc+Uc,Yc+Vc,'linear',NaN) - YDc1;
+                        %                                 U2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'linear',NaN) - XDc2;
+                        %                                 V2 = interp2(XI,YI,YD2,Xc+Uc,Yc+Vc,'linear',NaN) - YDc2;
+                        %                             end
+                        %
+                        %                             %if we have NaN values, we don't know how to
+                        %                             %correct the shift, so just use the raw value.
+                        %                             U1(isnan(U1)) = Uc(isnan(U1));
+                        %                             V1(isnan(V1)) = Vc(isnan(V1));
+                        %                             U2(isnan(U2)) = Uc(isnan(U2));
+                        %                             V2(isnan(V2)) = Vc(isnan(V2));
+                        %
+                        %                             %clear U2 V2
+
+                    else
+                        %other methods just add bulk offset predictor
+                        %back to calculated subpixel corrector
+                        % do nothing to Uc and Vc
+                    end
+
+                    %reincorporate deformation as velocity for next pass
+                    if find_extrapeaks && ~strcmpi(Corr{e},'SPC')
+                        %there will be 3 velocity fields in Uc an Vc, so repmat bulk offset
+                        Uc = Uc + repmat(Ub(Eval>=0),[1 3]);
+                        Vc = Vc + repmat(Vb(Eval>=0),[1 3]);
+                    else
+                        %only 1 velocity field is returned, use bulk offset directly
+                        Uc = Uc + Ub(Eval>=0);
                         Vc = Vc + Vb(Eval>=0);
                     end
                     
+                    % Perform image matching uncertainty estimation for
+                    % window deformation pass
+                    if uncertainty(e).imuncertainty==1
+                        %First deform the images based on current
+                        %velocity estimate U=Uc+Ub,V=Vc+Vb,
+
+%                             %convert to matrix if necessary
+%                             if size(X,2)==1
+%                                 [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
+%                             end
+
+                        %reshape from list of grid points to matrix
+                        Xt=reshape(X,[S(1),S(2)]);
+                        Yt=reshape(Y,[S(1),S(2)]);
+
+                        %remove nans from data, replace with zeros
+%                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
+
+                        %velocity interpolation -
+                        %resample Uc(X,Y) and Vc(X,Y) onto UI(XI,YI) and
+                        %VI(XIt,YIt) where XI and YI are a list of every
+                        %pixel in the image plane. Velinterp is the type of
+                        %interpolation to use.
+                        UI = VFinterp(Xt,Yt,Uc,XI,YI,Velinterp);
+                        VI = VFinterp(Xt,Yt,Vc,XI,YI,Velinterp);
+
+                        if strcmpi(M,'Deform')
+                            XD1t = XI-UI/2 ;
+                            YD1t = YI-VI/2;
+                            XD2t = XI+UI/2;
+                            YD2t = YI+VI/2;
+
+                            % Preallocate memory for deformed images.
+                            im1dt = zeros(size(im1),imClass);
+                            im2dt = zeros(size(im2),imClass);
+
+                            % Deform images according to the interpolated velocity fields
+                            for k = 1:nChannels % Loop over all of the color channels in the image
+                                if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+
+                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+
+                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                    bsplDegree = 7;  %order of the b-spline (0-7)
+                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                                end
+                            end
+                        elseif strcmpi(M,'ForwardDeform') %only the 2nd image is deformed
+                            %XD1t = XI   ;
+                            %YD1t = YI   ;
+                            XD2t = XI+UI;
+                            YD2t = YI+VI;
+
+                            % Preallocate memory for deformed images.
+                            im1dt = im1;
+                            im2dt = zeros(size(im2),imClass);
+
+                            % Deform images according to the interpolated velocity fields
+                            for k = 1 : nChannels % Loop over all of the color channels in the image
+                                if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 3, 0);
+
+                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic',0);
+
+                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                    bsplDegree = 7;  %order of the b-spline (0-7)
+                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                                end
+                            end
+                        else
+                            error('Trying to use deform with IM when not a deform method: Check pass method name.')
+                        end
+
+                        % Run image matching on deformed images
+                        [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                        uncertainty2D.Uimx=Uimx;
+                        uncertainty2D.Uimy=Uimy;
+                        uncertainty2D.Nump=Nump;
+                    else
+                        %leave empty for efficiency
+                        % uncertainty2D.Uimx=zeros(size(Xc));
+                        % uncertainty2D.Uimy=zeros(size(Xc));
+                        % uncertainty2D.Nump=zeros(size(Xc));
+                    end
+                                                
                 else  %either first pass, or not deform
                     if ~strcmpi(Corr{e},'SPC')
                         if any(isnan(Ub(Eval>=0)))
