@@ -744,36 +744,65 @@ switch char(M)
                             UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
                             VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
                             
-                            XD1t = XI-UI/2 ;
-                            YD1t = YI-VI/2;
-                            XD2t = XI+UI/2;
-                            YD2t = YI+VI/2;
-                            
-                            % Preallocate memory for deformed images.
-                            im1dt = zeros(size(im1),imClass);
-                            im2dt = zeros(size(im2),imClass);
-                            
-                            % Deform images according to the interpolated velocity fields
-                            for k = 1:nChannels % Loop over all of the color channels in the image
-                                if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
-                                    
-                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
-                                    
-                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1+0.5, YD1+0.5, 'cubic', 0);
-                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic', 0);
-                                    
-                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                                    bsplDegree = 7;  %order of the b-spline (0-7)
-                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1+0.5, YD1+0.5, 0);
-                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
+                            if strcmpi(M,'Deform')
+                                XD1t = XI-UI/2 ;
+                                YD1t = YI-VI/2;
+                                XD2t = XI+UI/2;
+                                YD2t = YI+VI/2;
+
+                                % Preallocate memory for deformed images.
+                                im1dt = zeros(size(im1),imClass);
+                                im2dt = zeros(size(im2),imClass);
+
+                                % Deform images according to the interpolated velocity fields
+                                for k = 1:nChannels % Loop over all of the color channels in the image
+                                    if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                        im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+
+                                    elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                        im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                                    elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                        im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                                        im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+
+                                    elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                        bsplDegree = 7;  %order of the b-spline (0-7)
+                                        im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                                        im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                                    end
                                 end
+                            elseif strcmpi(M,'ForwardDeform') %only the 2nd image is deformed
+                                XD1t = XI   ;
+                                YD1t = YI   ;
+                                XD2t = XI+UI;
+                                YD2t = YI+VI;
+                                
+                                % Preallocate memory for deformed images.
+                                im1dt = im1;
+                                im2dt = zeros(size(im2),imClass);
+                                
+                                % Deform images according to the interpolated velocity fields
+                                for k = 1 : nChannels % Loop over all of the color channels in the image
+                                    if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 3, 0);
+                                        
+                                    elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                        im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                                        
+                                    elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                        im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic',0);
+                                        
+                                    elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                        bsplDegree = 7;  %order of the b-spline (0-7)
+                                        im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                                    end
+                                end
+                            else
+                                error('Trying to use deform with IM when not a deform method: Check pass method name.')
                             end
-                            
                             
                             % Run image matching on deformed images
                             [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
