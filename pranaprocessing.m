@@ -700,7 +700,7 @@ switch char(M)
                             % Perform image matching uncertainty estimation for
                             % window deformation pass
                             %First deform the images based on current
-                            %velocity estimate Uc,Vc,
+                            %velocity estimate U=Uc+Ub,V=Vc+Vb,
                             
 %                             %convert to matrix if necessary
 %                             if size(X,2)==1
@@ -719,16 +719,17 @@ switch char(M)
                             %to be overwritten later.  Use the same names
                             %here (instead of a temporary like Ut) for
                             %efficiency.
+                            %
                             if find_extrapeaks
                                 U=zeros(size(X,1),3,imClass);
                                 V=zeros(size(X,1),3,imClass);
-                                U(repmat(Eval>=0,[1 3]))=Uc;
-                                V(repmat(Eval>=0,[1 3]))=Vc;
+                                U(repmat(Eval>=0,[1 3]))=Uc + repmat(Ub(Eval>=0),[1 3]);
+                                V(repmat(Eval>=0,[1 3]))=Vc + repmat(Vb(Eval>=0),[1 3]);
                             else
                                 U=zeros(size(X),imClass);
                                 V=zeros(size(X),imClass);
-                                U(Eval>=0)=Uc;
-                                V(Eval>=0)=Vc;
+                                U(Eval>=0)=Uc + Ub(Eval>=0);
+                                V(Eval>=0)=Vc + Vb(Eval>=0);
                             end
 
                             
