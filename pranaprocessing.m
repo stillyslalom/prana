@@ -938,24 +938,24 @@ switch char(M)
                             keyboard
                         end
                         [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
-                        
-                        if uncertainty(e).imuncertainty==1
-                            % Perform image matching uncertainty estimation for
-                            % first pass
-                            [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
-                            uncertainty2D.Uimx=Uimx;
-                            uncertainty2D.Uimy=Uimy;
-                            uncertainty2D.Nump=Nump;
-                        else
-                            %leave empty
-                            % uncertainty2D.Uimx=zeros(size(X));
-                            % uncertainty2D.Uimy=zeros(size(X));
-                            % uncertainty2D.Nump=zeros(size(X));
-                        end
-    
+                            
                     else
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
+                    end
+                    
+                    if uncertainty(e).imuncertainty==1
+                        % Perform image matching uncertainty estimation for
+                        % first pass
+                        [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
+                        uncertainty2D.Uimx=Uimx;
+                        uncertainty2D.Uimy=Uimy;
+                        uncertainty2D.Nump=Nump;
+                    else
+                        %leave empty
+                        % uncertainty2D.Uimx=zeros(size(X));
+                        % uncertainty2D.Uimy=zeros(size(X));
+                        % uncertainty2D.Nump=zeros(size(X));
                     end
                 end
                
