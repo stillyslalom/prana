@@ -848,7 +848,11 @@ switch char(M)
                         %reshape from list of grid points to matrix
                         Xt=reshape(X,[S(1),S(2)]);
                         Yt=reshape(Y,[S(1),S(2)]);
-
+                        U=zeros(size(Xt),imClass);
+                        V=zeros(size(Xt),imClass);
+                        U(Eval>=0)=Uc(:,1);
+                        V(Eval>=0)=Vc(:,1);
+                       
                         %remove nans from data, replace with zeros
 %                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
 
@@ -857,8 +861,8 @@ switch char(M)
                         %VI(XIt,YIt) where XI and YI are a list of every
                         %pixel in the image plane. Velinterp is the type of
                         %interpolation to use.
-                        UI = VFinterp(Xt,Yt,Uc,XI,YI,Velinterp);
-                        VI = VFinterp(Xt,Yt,Vc,XI,YI,Velinterp);
+                        UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
+                        VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
 
                         if strcmpi(M,'Deform')
                             XD1t = XI-UI/2 ;
