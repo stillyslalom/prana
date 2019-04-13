@@ -1,4 +1,4 @@
-function [deltax,deltay,NPeak]=image_matching_prana(region3,region4)
+function [deltax,deltay,NPeak,dispx,dispy,cw]=image_matching_prana(region3,region4)
 %THIS FUNCTION CALCULATES THE DISPARITY BETWEEN TWO CLOSELY MATCHING
 %IMAGES(LIKE AFTER DWO OR ITERATIVE WINDOW DEFORMATION WHEN PARTICLES
 %IN IMAGE PAIR IS CLOSE TO EACH OTHER).
