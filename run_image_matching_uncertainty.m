@@ -103,8 +103,10 @@ for n=1:length(X)
     region1 = (zone1).*sfilt1;
     region2 = (zone2).*sfilt2;
     
+    dx = Uin(n) - (x2-x1);
+    dy = Vin(n) - (y2-y1);
     
-    [deltax,deltay,Np,dispx,dispy,cw]=image_matching_prana(region1,region2);
+    [deltax,deltay,Np,dispx,dispy,cw]=image_matching_prana(region1,region2,dx,dy);
     Uimx(n)=deltax;
     Uimy(n)=deltay;
     Nump(n)=Np;

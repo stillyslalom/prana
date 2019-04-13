@@ -1,4 +1,4 @@
-function [deltax,deltay,NPeak,dispx,dispy,cw]=image_matching_prana(region3,region4)
+function [deltax,deltay,NPeak,dispx,dispy,cw]=image_matching_prana(region3,region4,dx,dy)
 %THIS FUNCTION CALCULATES THE DISPARITY BETWEEN TWO CLOSELY MATCHING
 %IMAGES(LIKE AFTER DWO OR ITERATIVE WINDOW DEFORMATION WHEN PARTICLES
 %IN IMAGE PAIR IS CLOSE TO EACH OTHER).
@@ -14,6 +14,11 @@ function [deltax,deltay,NPeak,dispx,dispy,cw]=image_matching_prana(region3,regio
 %BY IMAGE MATCHING", MST. 2013.BY ANDREA SCIACCHITANO,BERNHARD WIENEKE AND
 %FULVIO SCARANO
 %THIS CODE WRITTEN FOR PRANA IMPLEMENTATION IS WRITTEN BY SAYANTAN BHATTACHARYA.
+
+if nargin<3
+    dx = 0;
+    dy = 0;
+end
 
 %% Threshold image and find peaks
 sr=1; %SEARCH RADIUS FOR MATCHING PARTICLES
@@ -235,6 +240,10 @@ if NPeak==0
     deltay=nan;
     return;
 end
+
+%% Remove any subpixel shift left in the images
+dispx = dispx - dx;
+dispy = dispy - dy;
 
 %% CALCULATING WEIGHTED MEAN AND VARIANCE OF DISPARITY DISTRIBUTION FOR THIS
 %WINDOW PAIRS AND SAVING THE UNCERTAINTY AS OUTPUT.
