@@ -270,7 +270,7 @@ for e=1:P
     % checking if uncertainty options are checked:
     % Leave all methods set to 0 (default set above) if uncertainty 
     % estimates are turned off.
-    % None of the uncertainty methods work if correlation method is SPC, so
+    % Only IM of the uncertainty methods work if correlation method is SPC, so
     % disable them.
     if ischar(A.uncertaintyestimate)
         uncertainty(e).Uncswitch=str2double(A.uncertaintyestimate);
@@ -297,6 +297,12 @@ for e=1:P
             uncertainty(e).mcuncertainty=str2double(A.mcuncertainty);
         else
             uncertainty(e).mcuncertainty=A.mcuncertainty;
+        end
+    elseif uncertainty(e).Uncswitch && strcmpi(Corr{e},'SPC')
+        if ischar(A.imuncertainty)
+            uncertainty(e).imuncertainty=str2double(A.imuncertainty);
+        else
+            uncertainty(e).imuncertainty=A.imuncertainty;
         end
     else
         %even if the method is on, don't do the work if master uncertainty 
@@ -701,6 +707,15 @@ switch char(M)
                         %Sam deleted the Cc output from PIVPhaseCorr - why?  because we don't use it? But it's needed for Dc in next line?
                         %[Xc,Yc,Uc,Vc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
+                        if uncertainty(e).imuncertainty==1
+                            %since PIVphasecorr doesn't return an
+                            %uncertainty2D variable, need to create a clean
+                            %version
+                            clear uncertainty2D
+                            uncertainty2D.Uimx  = zeros(length(Xc),1);
+                            uncertainty2D.Uimy  = zeros(length(Xc),1);
+                            uncertainty2D.Nump  = zeros(length(Xc),1);
+                        end
                     end
                     
                     % use coordinate system for deformed second
@@ -946,6 +961,15 @@ switch char(M)
                     else
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
+                        if uncertainty(e).imuncertainty==1
+                            %since PIVphasecorr doesn't return an
+                            %uncertainty2D variable, need to create a clean
+                            %version
+                            clear uncertainty2D
+                            uncertainty2D.Uimx  = zeros(length(Xc),1);
+                            uncertainty2D.Uimy  = zeros(length(Xc),1);
+                            uncertainty2D.Nump  = zeros(length(Xc),1);
+                        end
                     end
                     
                     if uncertainty(e).imuncertainty==1
@@ -1399,13 +1423,13 @@ switch char(M)
                                 if Iminterp == 1 % Sinc interpolation (without blackman window)
                                     im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2+0.5, YD2+0.5, 3, 0);
                                 
-								elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
                                     im2d(:, :, k) = whittaker_blackman(im2(:, :, k), XD2+0.5, YD2+0.5, 6, 1);
 									
                                 elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
                                     im2d(:, :, k) = interp2(im2(:, :, k), XD2+0.5, YD2+0.5, 'cubic',0);
                                 
-								elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
                                     bsplDegree = 7;  %order of the b-spline (0-7)
                                     im2d(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2+0.5, YD2+0.5, 0);
                                 end
