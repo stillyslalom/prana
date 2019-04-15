@@ -1,4 +1,4 @@
-function [X,Y,CC]=PIVensemble(im1,im2,tcorr,window,res,zpad,D,Zeromean,fracval,X,Y,Uin,Vin)
+function [X,Y,CC,AA1,AA2]=PIVensemble(im1,im2,tcorr,window,res,zpad,D,Zeromean,fracval,X,Y,uncertainty,Uin,Vin)
 % --- DPIV Ensemble Correlation ---
 imClass = 'double';
 
@@ -82,6 +82,17 @@ sfilt2 = windowmask([Nx Ny],[res(2, 1) res(2, 2)]);
 % sfilt12 = sfilt12( (Ny/2+1):(3*Ny/2) , (Nx/2+1):(3*Nx/2) ) / sum(sfilt1(:).*sfilt2(:));
 % % keyboard
 
+% If we are going to calculate MI, we need to save the autocorelations for
+% averaging later.  MC uncertainty needs the MI, but strictly speaking only
+% needs AA1 and AA2 if MI wasn't already calculated.  We should be forcing
+% MI on whenever MC is selected.
+if uncertainty.miuncertainty==1 % || uncertainty.mcuncertainty==1
+    AA1 = zeros(Sy,Sx,length(X),imClass);
+    AA2 = zeros(Sy,Sx,length(X),imClass);
+else 
+    AA1 = 0;
+    AA2 = 0;
+end
 
 %correlation plane normalization function (always off).  
 % This is only used in the DRPC code.

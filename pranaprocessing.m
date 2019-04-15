@@ -1874,11 +1874,15 @@ switch char(M)
                     
                     t1=tic;
                     %correlate image pair and average correlations
-                    %                   [Xc,Yc,CC]=PIVensemble(im1,im2,Corr(e),Wsize(e,:),Wres(e, :, :),0,D(e),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                     if strcmpi(M,'EDeform') && (e~=1 || defloop ~=1 || VelInputFile)
-                        [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0));
+                        %previous pass velocities have been encoded in
+                        %deformed images, so don't  pass a shift
+                        [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
                     else
-                        [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                        %Not using deform, or either first pass or defloop 
+                        %iteration with no velocity input file, so use raw 
+                        %images with previous shift (Ub,Vb)
+                        [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
                     end
                     
                     if ~strcmpi(Corr{e},'SPC')   %SPC=4 %SCC or RPC
