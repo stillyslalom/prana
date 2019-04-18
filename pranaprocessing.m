@@ -1592,8 +1592,41 @@ switch char(M)
                 U=zeros(size(X),imClass);V=zeros(size(X),imClass);C=zeros(size(X),imClass);Di=zeros(size(X),imClass);
                 DX=zeros(size(X),imClass);DY=zeros(size(X),imClass);ALPHA=zeros(size(X),imClass);
             end
+            
+            clear uncertainty2D
+            %to save space, initialize only the variables we will be using
+            if uncertainty(e).ppruncertainty==1
+                SNRmetric.PPR         = zeros(length(X),1);
+                uncertainty2D.Upprx   = zeros(length(X),1);
+                uncertainty2D.Uppry   = zeros(length(X),1);
+                uncertainty2D.UpprxLB = zeros(length(X),1);
+                uncertainty2D.UppryLB = zeros(length(X),1);
+                uncertainty2D.UpprxUB = zeros(length(X),1);
+                uncertainty2D.UppryUB = zeros(length(X),1);
+            end
+            if uncertainty(e).miuncertainty==1
+                SNRmetric.MI         = zeros(length(X),1);
+                uncertainty2D.UmixLB = zeros(length(X),1);
+                uncertainty2D.UmiyLB = zeros(length(X),1);
+                uncertainty2D.UmixUB = zeros(length(X),1);
+                uncertainty2D.UmiyUB = zeros(length(X),1);
+                uncertainty2D.Autod  = zeros(length(X),1);
+            end
+            if uncertainty(e).mcuncertainty==1
+                uncertainty2D.Ixx   = zeros(length(X),1);
+                uncertainty2D.Iyy   = zeros(length(X),1);
+                uncertainty2D.biasx = zeros(length(X),1);
+                uncertainty2D.biasy = zeros(length(X),1);
+                uncertainty2D.Neff  = zeros(length(X),1);
+            end
+            if uncertainty(e).imuncertainty==1
+                uncertainty2D.Uimx  = zeros(length(X),1);
+                uncertainty2D.Uimy  = zeros(length(X),1);
+                uncertainty2D.Nump  = zeros(length(X),1);
+            end
+            
             % changed matlabpool to parpool for future versions of matlab
-            if str2double(Data.par) && parpool('size')>1
+            if str2double(Data.par) %&& parpool('size')>1
                 
                 spmd
                     verstr=version('-release');
@@ -1720,9 +1753,9 @@ switch char(M)
                         %correlate image pair and average correlations
                         %                      [Xc,Yc,CC]=PIVensemble(im1,im2,Corr(e),Wsize(e,:),Wres(e, :, :),0,D(e),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         if strcmpi(M,'EDeform') && (e~=1 || defloop ~=1  || VelInputFile)
-                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0));
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
                         else
-                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
                         end
                         
                         if ~strcmpi(Corr{e},'SPC')
@@ -2030,10 +2063,10 @@ switch char(M)
                 %reshape from list of grid points to matrix
                 Xt=reshape(X,[S(1),S(2)]);
                 Yt=reshape(Y,[S(1),S(2)]);
-                %Ut=zeros(size(Xt),imClass);
-                %Vt=zeros(size(Xt),imClass);
-                Ut=Uc(:,1);
-                Vt=Vc(:,1);
+                Ut=zeros(size(Xt),imClass);
+                Vt=zeros(size(Xt),imClass);
+                Ut(Eval(:,1)>=0)=U(Eval(:,1)>=0,1);
+                Vt(Eval(:,1)>=0)=V(Eval(:,1)>=0,1);
                 
                 %remove nans from data, replace with zeros
                 % Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
@@ -2055,7 +2088,7 @@ switch char(M)
                 dispy = cell(length(Xc),1);
                 cw    = cell(length(Xc),1);
                 
-                if str2double(Data.par) && parpool('size')>1
+                if str2double(Data.par) %&& parpool('size')>1
 
                     spmd
                         verstr=version('-release');
@@ -2067,6 +2100,9 @@ switch char(M)
                             I2dist=localPart(codistributed(I2,codistributor('1d',2),'convert'));
                         end
                         
+                        %I1dist = I1;
+                        %I2dist = I2;
+
                         for q=1:length(I1dist)
                             if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
                                 loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1dist(q))]);
@@ -2162,9 +2198,9 @@ switch char(M)
                             
                             %for each interrogation region, accumulate disparity list over all image pairs
                             if q==1
-                                dispx_dist  = cell(length(Xc,1));
-                                dispy_dist  = cell(length(Xc,1));
-                                cw_dist     = cell(length(Xc,1));
+                                dispx_dist  = cell(length(Xc),1);
+                                dispy_dist  = cell(length(Xc),1);
+                                cw_dist     = cell(length(Xc),1);
                                 for n=1:length(Xc)
                                     dispx_dist{n} = DispX{n};
                                     dispy_dist{n} = DispY{n};
@@ -2181,11 +2217,14 @@ switch char(M)
                         end
                     end
                     
-                    for i=1:length(dispx_disp)
+                    for i=1:length(dispx_dist)
+                        dispx_disti = dispx_dist{i};
+                        dispy_disti = dispy_dist{i};
+                        cw_disti    = cw_dist{i};
                         for n=1:length(Xc)
-                            dispx{n} = [dispx{n};dispx_dist{i}{n}];
-                            dispy{n} = [dispy{n};dispy_dist{i}{n}];
-                            cw{n}    = [cw{n}   ;cw_dist{i}{n}   ];
+                            dispx{n} = [dispx{n};dispx_disti{n}];
+                            dispy{n} = [dispy{n};dispy_disti{n}];
+                            cw{n}    = [cw{n}   ;cw_disti{n}   ];
                         end
                     end
                     
@@ -2254,7 +2293,7 @@ switch char(M)
                         %need to pick deform algorithm if method is not set
                         if strcmpi(M,'Ensemble')
                             %pick bicubic for speed
-                            IM_Iminterp = 3;
+                            IM_Iminterp = 2;
                         else
                             IM_Iminterp = Iminterp;
                         end
@@ -2295,13 +2334,13 @@ switch char(M)
                     end
                 end
                 
-                Uimx = zeros(length(Xc,1));
-                Uimy = zeros(length(Xc,1));
-                Nump = zeros(length(Xc,1));
+                Uimx = zeros(length(Xc),1);
+                Uimy = zeros(length(Xc),1);
+                Nump = zeros(length(Xc),1);
                                 
                 % Calcuate weighted mean and variance of disparity distribution for each interrogation region
                 for n=1:length(Xc)
-                    Npeak = length(dispx{n});
+                    NPeak = length(dispx{n});
                     
                     mewx=(1/sum(cw{n}))*sum(cw{n}.*dispx{n});% Weighted mean
                     sigx=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispx{n}-mewx).^2)));% Weighted std deviation
@@ -2313,7 +2352,7 @@ switch char(M)
                     
                     Uimx(n)=deltax;
                     Uimy(n)=deltay;
-                    Nump(n)=Npeak;
+                    Nump(n)=NPeak;
                 end
 
                 uncertainty2D.Uimx=Uimx;
@@ -2326,7 +2365,6 @@ switch char(M)
                 % uncertainty2D.Uimy=zeros(size(Xc));
                 % uncertainty2D.Nump=zeros(size(Xc));
             end
-            
             
             %validation
             if Valswitch(e)
@@ -2351,6 +2389,109 @@ switch char(M)
                 DXval=DX(:,1);DYval=DY(:,1);ALPHAval=ALPHA(:,1);
             end
             
+            %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            %---- This section is for Uncertainty value conversion to
+            %matrix and MC method gradient correction---------%
+            if uncertainty(e).ppruncertainty==1
+                %can't do these in place, so need to use an
+                %intermediate variable
+                temp_SNR = SNRmetric.PPR;
+                SNRmetric.PPR          = zeros([S(1),S(2)],imClass);
+                SNRmetric.PPR(Eval(:,1)>=0) = temp_SNR;
+                
+                temp_unc = uncertainty2D.Upprx;
+                uncertainty2D.Upprx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Upprx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uppry;
+                uncertainty2D.Uppry         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uppry(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UpprxLB;
+                uncertainty2D.UpprxLB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UpprxLB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UppryLB;
+                uncertainty2D.UppryLB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UppryLB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UpprxUB;
+                uncertainty2D.UpprxUB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UpprxUB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UppryUB;
+                uncertainty2D.UppryUB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UppryUB(Eval(:,1)>=0)= temp_unc;
+                
+                clear temp_SNR temp_unc
+            end
+            if uncertainty(e).miuncertainty==1
+                temp_SNR = SNRmetric.MI;
+                SNRmetric.MI          = zeros([S(1),S(2)],imClass);
+                SNRmetric.MI(Eval(:,1)>=0) = temp_SNR;
+                
+                temp_unc = uncertainty2D.UmixLB;
+                uncertainty2D.UmixLB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UmixLB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UmiyLB;
+                uncertainty2D.UmiyLB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UmiyLB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UmixUB;
+                uncertainty2D.UmixUB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UmixUB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.UmiyUB;
+                uncertainty2D.UmiyUB         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.UmiyUB(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Autod;
+                uncertainty2D.Autod         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Autod(Eval(:,1)>=0)= temp_unc;
+                
+                clear temp_SNR temp_unc
+            end
+            if uncertainty(e).mcuncertainty==1
+                temp_unc = uncertainty2D.Ixx;
+                uncertainty2D.Ixx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Ixx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Iyy;
+                uncertainty2D.Iyy         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Iyy(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.biasx;
+                uncertainty2D.biasx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.biasx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.biasy;
+                uncertainty2D.biasy         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.biasy(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Neff;
+                uncertainty2D.Neff         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Neff(Eval(:,1)>=0)= temp_unc;
+                
+                clear temp_unc
+            end
+            if uncertainty(e).imuncertainty==1
+                temp_unc = uncertainty2D.Uimx;
+                uncertainty2D.Uimx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uimx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uimy;
+                uncertainty2D.Uimy         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uimy(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Nump;
+                uncertainty2D.Nump         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Nump(Eval(:,1)>=0)= temp_unc;
+                
+                clear temp_unc
+            end
+
+                        
             % --- Iterative Deformation Check ---
             if strcmpi(M,'EDeform')
                 if defloop == 1
@@ -2469,9 +2610,9 @@ switch char(M)
                 end
                 if str2double(Data.multiplematout)
                     if strcmpi(M,'EDeform')
-                        save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(1))]),'X','Y','U','V','Eval','C','Di','numDefPasses','DX','DY','ALPHA')
+                        save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(1))]),'X','Y','U','V','Eval','C','Di','numDefPasses','uncertainty2D','SNRmetric','DX','DY','ALPHA')
                     else
-                        save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(1))]),'X','Y','U','V','Eval','C','Di','DX','DY','ALPHA')
+                        save(fullfile(pltdirec, [char(wbase(e,:)) sprintf(['%0.' Data.imzeros 'i.mat' ],I1(1))]),'X','Y','U','V','Eval','C','Di','uncertainty2D','SNRmetric','DX','DY','ALPHA')
                     end
                 end
                 if saveplane(e) && ~strcmpi(Corr{e},'SPC')
