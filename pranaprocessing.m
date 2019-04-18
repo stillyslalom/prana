@@ -420,28 +420,28 @@ switch char(M)
             % transparency channel.
             if size(im1, 3) > 2
                 %Extract only red channel
-                if channel == 1;
+                if channel == 1
                     im1 = im1(:,:,1);
                     im2 = im2(:,:,1);
                     %Extract only green channel
-                elseif channel == 2;
+                elseif channel == 2
                     im1 = im1(:,:,2);
                     im2 = im2(:,:,2);
                     %Extract only blue channel
-                elseif channel == 3;
+                elseif channel == 3
                     im1 = im1(:,:,3);
                     im2 = im2(:,:,3);
                     %Weighted average of channels (see rgb2gray for
                     %explanation of weighting factors)
-                elseif channel == 4;
+                elseif channel == 4
                     im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
                     im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
                     %Evenly weighted mean of channels
-                elseif channel == 5;
+                elseif channel == 5
                     im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
                     im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
                     %ensemble correlation of channels
-                elseif channel == 6;
+                elseif channel == 6
                     im1=im1(:,:,1:3);
                     im2=im2(:,:,1:3);
                 end
@@ -1621,28 +1621,28 @@ switch char(M)
                         
                         if size(im1, 3) > 2
                             %Extract only red channel
-                            if channel == 1;
+                            if channel == 1
                                 im1 = im1(:,:,1);
                                 im2 = im2(:,:,1);
                                 %Extract only green channel
-                            elseif channel == 2;
+                            elseif channel == 2
                                 im1 = im1(:,:,2);
                                 im2 = im2(:,:,2);
                                 %Extract only blue channel
-                            elseif channel == 3;
+                            elseif channel == 3
                                 im1 = im1(:,:,3);
                                 im2 = im2(:,:,3);
                                 %Weighted average of channels (see rgb2gray for
                                 %explanation of weighting factors)
-                            elseif channel == 4;
+                            elseif channel == 4
                                 im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
                                 im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
                                 %Evenly weighted mean of channels
-                            elseif channel == 5;
+                            elseif channel == 5
                                 im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
                                 im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
                                 %ensemble correlation of channels
-                            elseif channel == 6;
+                            elseif channel == 6
                                 im1=im1(:,:,1:3);
                                 im2=im2(:,:,1:3);
                             end
@@ -1786,28 +1786,28 @@ switch char(M)
                     
                     if size(im1, 3) > 2
                         %Extract only red channel
-                        if channel == 1;
+                        if channel == 1
                             im1 = im1(:,:,1);
                             im2 = im2(:,:,1);
                             %Extract only green channel
-                        elseif channel == 2;
+                        elseif channel == 2
                             im1 = im1(:,:,2);
                             im2 = im2(:,:,2);
                             %Extract only blue channel
-                        elseif channel == 3;
+                        elseif channel == 3
                             im1 = im1(:,:,3);
                             im2 = im2(:,:,3);
                             %Weighted average of channels (see rgb2gray for
                             %explanation of weighting factors)
-                        elseif channel == 4;
+                        elseif channel == 4
                             im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
                             im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
                             %Evenly weighted mean of channels
-                        elseif channel == 5;
+                        elseif channel == 5
                             im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
                             im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
                             %ensemble correlation of channels
-                        elseif channel == 6;
+                        elseif channel == 6
                             im1=im1(:,:,1:3);
                             im2=im2(:,:,1:3);
                         end
@@ -2015,6 +2015,182 @@ switch char(M)
                 DY(Eval>=0)=DYc(:);
                 ALPHA(Eval>=0)=ALPHAc(:);
             end
+            
+            % Perform image matching uncertainty estimation for
+            % window deformation pass
+            if uncertainty(e).imuncertainty==1
+                %First deform the images based on current
+                %velocity estimate U=Uc+Ub,V=Vc+Vb,
+                
+                % %convert to matrix if necessary
+                % if size(X,2)==1
+                %     [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
+                % end
+                
+                %reshape from list of grid points to matrix
+                Xt=reshape(X,[S(1),S(2)]);
+                Yt=reshape(Y,[S(1),S(2)]);
+                %Ut=zeros(size(Xt),imClass);
+                %Vt=zeros(size(Xt),imClass);
+                Ut=Uc(:,1);
+                Vt=Vc(:,1);
+                
+                %remove nans from data, replace with zeros
+                % Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
+                
+                %velocity interpolation -
+                %resample Uc(X,Y) and Vc(X,Y) onto UI(XI,YI) and
+                %VI(XIt,YIt) where XI and YI are a list of every
+                %pixel in the image plane. Velinterp is the type of
+                %interpolation to use.
+                UI = VFinterp(Xt,Yt,Ut,XI,YI,Velinterp);
+                VI = VFinterp(Xt,Yt,Vt,XI,YI,Velinterp);
+                
+                XD1t = XI-UI/2 ;
+                YD1t = YI-VI/2;
+                XD2t = XI+UI/2;
+                YD2t = YI+VI/2;
+
+                dispx = cell(length(Xc),1);
+                dispy = cell(length(Xc),1);
+                cw    = cell(length(Xc),1);
+                
+                for q=1:length(I1)
+                    
+                    %load image pair and flip coordinates
+                    if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
+                        loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]);
+                        im1 = cast(loaddata.I,imClass);
+                        loaddata=load([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]);
+                        im2 = cast(loaddata.I,imClass);
+                        loaddata =[];
+                    else
+                        im1=cast(imread([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]),imClass);
+                        im2=cast(imread([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]),imClass);
+                    end
+                    
+                    if size(im1, 3) > 2
+                        %Extract only red channel
+                        if channel == 1
+                            im1 = im1(:,:,1);
+                            im2 = im2(:,:,1);
+                            %Extract only green channel
+                        elseif channel == 2
+                            im1 = im1(:,:,2);
+                            im2 = im2(:,:,2);
+                            %Extract only blue channel
+                        elseif channel == 3
+                            im1 = im1(:,:,3);
+                            im2 = im2(:,:,3);
+                            %Weighted average of channels (see rgb2gray for
+                            %explanation of weighting factors)
+                        elseif channel == 4
+                            im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
+                            im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
+                            %Evenly weighted mean of channels
+                        elseif channel == 5
+                            im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
+                            im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
+                            %ensemble correlation of channels
+                        elseif channel == 6
+                            im1=im1(:,:,1:3);
+                            im2=im2(:,:,1:3);
+                        end
+                    else
+                        %Take only red channel
+                        im1 =im1(:,:,1);
+                        im2 =im2(:,:,1);
+                        channel = 1;
+                    end
+                    
+                    % Determine the number of channels in the image
+                    % to be deformed. This should be 3 for color
+                    % images or 1 for grayscale images.
+                    nChannels = size(im1, 3);
+                    
+                    %  Flip images.
+                    im1 = im1(end:-1:1,:,:);
+                    im2 = im2(end:-1:1,:,:);
+                    
+                    % Preallocate memory for deformed images.
+                    im1dt = zeros(size(im1),imClass);
+                    im2dt = zeros(size(im2),imClass);
+
+                    %need to pick deform algorithm if method is not set
+                    if strcmpi(M,'Ensemble')
+                        %pick bicubic for speed
+                        IM_Iminterp = 3;
+                    else
+                        IM_Iminterp = Iminterp;
+                    end
+                    
+                    % Deform images according to the interpolated velocity fields
+                    for k = 1:nChannels % Loop over all of the color channels in the image
+                        if IM_Iminterp == 1 % Sinc interpolation (without blackman window)
+                            im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                            im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+                            
+                        elseif IM_Iminterp == 2 % Sinc interpolation with blackman filter
+                            im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                            im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                            
+                        elseif IM_Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                            im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                            im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+                            
+                        elseif IM_Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                            bsplDegree = 7;  %order of the b-spline (0-7)
+                            im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                            im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                        end
+                    end
+
+
+                    % Run image matching on deformed images
+                    %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
+                    [~,~,~,DispX,DispY,CW]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                    
+                    %for each interrogation region, accumulate disparity list over all image pairs
+                    for n=1:length(Xc)
+                        dispx{n} = [dispx{n};DispX{n}];
+                        dispy{n} = [dispy{n};DispY{n}];
+                        cw {n}   = [cw{n}   ;CW{n}   ];
+                    end
+                    
+                end
+                
+                Uimx = zeros(length(Xc,1));
+                Uimy = zeros(length(Xc,1));
+                Nump = zeros(length(Xc,1));
+                                
+                % Calcuate weighted mean and variance of disparity distribution for each interrogation region
+                for n=1:length(Xc)
+                    Npeak = length(dispx{n});
+                    
+                    mewx=(1/sum(cw{n}))*sum(cw{n}.*dispx{n});% Weighted mean
+                    sigx=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispx{n}-mewx).^2)));% Weighted std deviation
+                    deltax=sqrt(mewx^2 + (sigx/sqrt(NPeak))^2);% Uncertainty in x
+
+                    mewy=(1/sum(cw{n}))*sum(cw{n}.*dispy{n});% Weighted mean
+                    sigy=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispy{n}-mewy).^2)));% Weighted std deviation
+                    deltay=sqrt(mewy^2 + (sigy/sqrt(NPeak))^2);% Uncertainty in y
+                    
+                    Uimx(n)=deltax;
+                    Uimy(n)=deltay;
+                    Nump(n)=Npeak;
+                end
+
+                uncertainty2D.Uimx=Uimx;
+                uncertainty2D.Uimy=Uimy;
+                uncertainty2D.Nump=Nump;
+
+            else
+                %leave empty for efficiency
+                % uncertainty2D.Uimx=zeros(size(Xc));
+                % uncertainty2D.Uimy=zeros(size(Xc));
+                % uncertainty2D.Nump=zeros(size(Xc));
+            end
+            
             
             %validation
             if Valswitch(e)
