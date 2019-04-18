@@ -2055,108 +2055,244 @@ switch char(M)
                 dispy = cell(length(Xc),1);
                 cw    = cell(length(Xc),1);
                 
-                for q=1:length(I1)
-                    
-                    %load image pair and flip coordinates
-                    if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
-                        loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]);
-                        im1 = cast(loaddata.I,imClass);
-                        loaddata=load([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]);
-                        im2 = cast(loaddata.I,imClass);
-                        loaddata =[];
-                    else
-                        im1=cast(imread([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]),imClass);
-                        im2=cast(imread([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]),imClass);
-                    end
-                    
-                    if size(im1, 3) > 2
-                        %Extract only red channel
-                        if channel == 1
-                            im1 = im1(:,:,1);
-                            im2 = im2(:,:,1);
-                            %Extract only green channel
-                        elseif channel == 2
-                            im1 = im1(:,:,2);
-                            im2 = im2(:,:,2);
-                            %Extract only blue channel
-                        elseif channel == 3
-                            im1 = im1(:,:,3);
-                            im2 = im2(:,:,3);
-                            %Weighted average of channels (see rgb2gray for
-                            %explanation of weighting factors)
-                        elseif channel == 4
-                            im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
-                            im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
-                            %Evenly weighted mean of channels
-                        elseif channel == 5
-                            im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
-                            im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
-                            %ensemble correlation of channels
-                        elseif channel == 6
-                            im1=im1(:,:,1:3);
-                            im2=im2(:,:,1:3);
+                if str2double(Data.par) && parpool('size')>1
+
+                    spmd
+                        verstr=version('-release');
+                        if str2double(verstr(1:4))>=2010
+                            I1dist=getLocalPart(codistributed(I1,codistributor('1d',2)));
+                            I2dist=getLocalPart(codistributed(I2,codistributor('1d',2)));
+                        else
+                            I1dist=localPart(codistributed(I1,codistributor('1d',2),'convert'));
+                            I2dist=localPart(codistributed(I2,codistributor('1d',2),'convert'));
                         end
-                    else
-                        %Take only red channel
-                        im1 =im1(:,:,1);
-                        im2 =im2(:,:,1);
-                        channel = 1;
-                    end
-                    
-                    % Determine the number of channels in the image
-                    % to be deformed. This should be 3 for color
-                    % images or 1 for grayscale images.
-                    nChannels = size(im1, 3);
-                    
-                    %  Flip images.
-                    im1 = im1(end:-1:1,:,:);
-                    im2 = im2(end:-1:1,:,:);
-                    
-                    % Preallocate memory for deformed images.
-                    im1dt = zeros(size(im1),imClass);
-                    im2dt = zeros(size(im2),imClass);
-
-                    %need to pick deform algorithm if method is not set
-                    if strcmpi(M,'Ensemble')
-                        %pick bicubic for speed
-                        IM_Iminterp = 3;
-                    else
-                        IM_Iminterp = Iminterp;
-                    end
-                    
-                    % Deform images according to the interpolated velocity fields
-                    for k = 1:nChannels % Loop over all of the color channels in the image
-                        if IM_Iminterp == 1 % Sinc interpolation (without blackman window)
-                            im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
-                            im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+                        
+                        for q=1:length(I1dist)
+                            if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
+                                loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1dist(q))]);
+                                im1 = cast(loaddata.I,imClass);
+                                loaddata=load([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2dist(q))]);
+                                im2 = cast(loaddata.I,imClass);
+                                loaddata =[];
+                            else
+                                im1=cast(imread([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1dist(q))]),imClass);
+                                im2=cast(imread([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2dist(q))]),imClass);
+                            end
                             
-                        elseif IM_Iminterp == 2 % Sinc interpolation with blackman filter
-                            im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
-                            im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                            if size(im1, 3) > 2
+                                %Extract only red channel
+                                if channel == 1
+                                    im1 = im1(:,:,1);
+                                    im2 = im2(:,:,1);
+                                    %Extract only green channel
+                                elseif channel == 2
+                                    im1 = im1(:,:,2);
+                                    im2 = im2(:,:,2);
+                                    %Extract only blue channel
+                                elseif channel == 3
+                                    im1 = im1(:,:,3);
+                                    im2 = im2(:,:,3);
+                                    %Weighted average of channels (see rgb2gray for
+                                    %explanation of weighting factors)
+                                elseif channel == 4
+                                    im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
+                                    im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
+                                    %Evenly weighted mean of channels
+                                elseif channel == 5
+                                    im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
+                                    im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
+                                    %ensemble correlation of channels
+                                elseif channel == 6
+                                    im1=im1(:,:,1:3);
+                                    im2=im2(:,:,1:3);
+                                end
+                            else
+                                %Take only red channel
+                                im1 =im1(:,:,1);
+                                im2 =im2(:,:,1);
+                                channel = 1;
+                            end
                             
-                        elseif IM_Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                            im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
-                            im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+                            % Determine the number of channels in the image
+                            % to be deformed. This should be 3 for color
+                            % images or 1 for grayscale images.
+                            nChannels = size(im1, 3);
                             
-                        elseif IM_Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                            bsplDegree = 7;  %order of the b-spline (0-7)
-                            im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
-                            im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                            %  Flip images.
+                            im1 = im1(end:-1:1,:,:);
+                            im2 = im2(end:-1:1,:,:);
+                            
+                            % Preallocate memory for deformed images.
+                            im1dt = zeros(size(im1),imClass);
+                            im2dt = zeros(size(im2),imClass);
+                            
+                            %need to pick deform algorithm if method is not set
+                            if strcmpi(M,'Ensemble')
+                                %pick bicubic for speed
+                                IM_Iminterp = 3;
+                            else
+                                IM_Iminterp = Iminterp;
+                            end
+                            
+                            % Deform images according to the interpolated velocity fields
+                            for k = 1:nChannels % Loop over all of the color channels in the image
+                                if IM_Iminterp == 1 % Sinc interpolation (without blackman window)
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+                                    
+                                elseif IM_Iminterp == 2 % Sinc interpolation with blackman filter
+                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+                                    
+                                elseif IM_Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+                                    
+                                elseif IM_Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                    bsplDegree = 7;  %order of the b-spline (0-7)
+                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                                end
+                            end
+                            
+                            
+                            % Run image matching on deformed images
+                            %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
+                            [~,~,~,DispX,DispY,CW]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                            
+                            %for each interrogation region, accumulate disparity list over all image pairs
+                            if q==1
+                                dispx_dist  = cell(length(Xc,1));
+                                dispy_dist  = cell(length(Xc,1));
+                                cw_dist     = cell(length(Xc,1));
+                                for n=1:length(Xc)
+                                    dispx_dist{n} = DispX{n};
+                                    dispy_dist{n} = DispY{n};
+                                    cw_dist{n}    = CW{n}   ;
+                                end
+                            else
+                                for n=1:length(Xc)
+                                    dispx_dist{n} = [dispx_dist{n};DispX{n}];
+                                    dispy_dist{n} = [dispy_dist{n};DispY{n}];
+                                    cw_dist{n}    = [cw_dist{n}   ;CW{n}   ];
+                                end
+                            end
+                            
                         end
                     end
-
-
-                    % Run image matching on deformed images
-                    %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
-                    [~,~,~,DispX,DispY,CW]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
                     
-                    %for each interrogation region, accumulate disparity list over all image pairs
-                    for n=1:length(Xc)
-                        dispx{n} = [dispx{n};DispX{n}];
-                        dispy{n} = [dispy{n};DispY{n}];
-                        cw {n}   = [cw{n}   ;CW{n}   ];
+                    for i=1:length(dispx_disp)
+                        for n=1:length(Xc)
+                            dispx{n} = [dispx{n};dispx_dist{i}{n}];
+                            dispy{n} = [dispy{n};dispy_dist{i}{n}];
+                            cw{n}    = [cw{n}   ;cw_dist{i}{n}   ];
+                        end
                     end
                     
+                else
+                    for q=1:length(I1)
+
+                        %load image pair and flip coordinates
+                        if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
+                            loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]);
+                            im1 = cast(loaddata.I,imClass);
+                            loaddata=load([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]);
+                            im2 = cast(loaddata.I,imClass);
+                            loaddata =[];
+                        else
+                            im1=cast(imread([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]),imClass);
+                            im2=cast(imread([imbase2 sprintf(['%0.' Data.imzeros 'i.' Data.imext],I2(q))]),imClass);
+                        end
+
+                        if size(im1, 3) > 2
+                            %Extract only red channel
+                            if channel == 1
+                                im1 = im1(:,:,1);
+                                im2 = im2(:,:,1);
+                                %Extract only green channel
+                            elseif channel == 2
+                                im1 = im1(:,:,2);
+                                im2 = im2(:,:,2);
+                                %Extract only blue channel
+                            elseif channel == 3
+                                im1 = im1(:,:,3);
+                                im2 = im2(:,:,3);
+                                %Weighted average of channels (see rgb2gray for
+                                %explanation of weighting factors)
+                            elseif channel == 4
+                                im1 = 0.2989 * im1(:, :, 1) + 0.5870 * im1(:, :, 2) + 0.1140 * im1(:, :, 3);
+                                im2 = 0.2989 * im2(:, :, 1) + 0.5870 * im2(:, :, 2) + 0.1140 * im2(:, :, 3);
+                                %Evenly weighted mean of channels
+                            elseif channel == 5
+                                im1 = (im1(:,:,1) + im1(:,:,2) + im1(:,:,3))/3;
+                                im2 = (im2(:,:,1) + im2(:,:,2) + im2(:,:,3))/3;
+                                %ensemble correlation of channels
+                            elseif channel == 6
+                                im1=im1(:,:,1:3);
+                                im2=im2(:,:,1:3);
+                            end
+                        else
+                            %Take only red channel
+                            im1 =im1(:,:,1);
+                            im2 =im2(:,:,1);
+                            channel = 1;
+                        end
+
+                        % Determine the number of channels in the image
+                        % to be deformed. This should be 3 for color
+                        % images or 1 for grayscale images.
+                        nChannels = size(im1, 3);
+
+                        %  Flip images.
+                        im1 = im1(end:-1:1,:,:);
+                        im2 = im2(end:-1:1,:,:);
+
+                        % Preallocate memory for deformed images.
+                        im1dt = zeros(size(im1),imClass);
+                        im2dt = zeros(size(im2),imClass);
+
+                        %need to pick deform algorithm if method is not set
+                        if strcmpi(M,'Ensemble')
+                            %pick bicubic for speed
+                            IM_Iminterp = 3;
+                        else
+                            IM_Iminterp = Iminterp;
+                        end
+
+                        % Deform images according to the interpolated velocity fields
+                        for k = 1:nChannels % Loop over all of the color channels in the image
+                            if IM_Iminterp == 1 % Sinc interpolation (without blackman window)
+                                im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+
+                            elseif IM_Iminterp == 2 % Sinc interpolation with blackman filter
+                                im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                            elseif IM_Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                                im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+
+                            elseif IM_Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                bsplDegree = 7;  %order of the b-spline (0-7)
+                                im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                                im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                            end
+                        end
+
+
+                        % Run image matching on deformed images
+                        %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
+                        [~,~,~,DispX,DispY,CW]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+
+                        %for each interrogation region, accumulate disparity list over all image pairs
+                        for n=1:length(Xc)
+                            dispx{n} = [dispx{n};DispX{n}];
+                            dispy{n} = [dispy{n};DispY{n}];
+                            cw{n}    = [cw{n}   ;CW{n}   ];
+                        end
+
+                    end
                 end
                 
                 Uimx = zeros(length(Xc,1));
