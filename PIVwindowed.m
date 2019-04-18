@@ -291,6 +291,29 @@ switch upper(tcorr)
                     if saveplane
                         Corrplanes(:,:,n) = G;
                     end
+                    
+                    % Evaluate uncertainty options for SCC
+                    if uncertainty.ppruncertainty==1
+                        %SNR calculation the other output arguments of Cal_SNR
+                        %are Maximum peak value,PRMSR,PCE,ENTROPY
+                        metric='PPR';
+                        PPRval = Cal_SNR(G,metric);
+                        % Save the SNR metrics
+                        SNRmetric.PPR(n)=PPRval;
+                        % Evaluate PPR Uncertainty
+                        % John J Charonko Model
+                        [Ux,Uy,~,~,~,~]=calibration_based_uncertainty('PPR_Charonkomodel',PPRval,upper(tcorr));
+                        uncertainty2D.Upprx(n)=Ux;
+                        uncertainty2D.Uppry(n)=Uy;
+
+                        % Xue Model
+                        [~,~,UxLB,UxUB,UyLB,UyUB]=calibration_based_uncertainty('PPR_Xuemodel',PPRval,upper(tcorr));
+                        uncertainty2D.UpprxLB(n)=UxLB;
+                        uncertainty2D.UppryLB(n)=UyLB;
+                        uncertainty2D.UpprxUB(n)=UxUB;
+                        uncertainty2D.UppryUB(n)=UyUB;
+                    end
+                    
                 end
 
             end
