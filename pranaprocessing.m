@@ -848,117 +848,17 @@ switch char(M)
                         Uc = Uc + Ub(Eval>=0);
                         Vc = Vc + Vb(Eval>=0);
                     end
-                    
-                    % Perform image matching uncertainty estimation for
-                    % window deformation pass
-                    if uncertainty(e).imuncertainty==1
-                        %First deform the images based on current
-                        %velocity estimate U=Uc+Ub,V=Vc+Vb,
-
-%                             %convert to matrix if necessary
-%                             if size(X,2)==1
-%                                 [X1,Y1,U,V,~,~,~]=matrixform(X,Y,Uc,Vc,Eval,C,Di);
-%                             end
-
-                        %reshape from list of grid points to matrix
-                        Xt=reshape(X,[S(1),S(2)]);
-                        Yt=reshape(Y,[S(1),S(2)]);
-                        U=zeros(size(Xt),imClass);
-                        V=zeros(size(Xt),imClass);
-                        U(Eval>=0)=Uc(:,1);
-                        V(Eval>=0)=Vc(:,1);
-                       
-                        %remove nans from data, replace with zeros
-%                             Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
-
-                        %velocity interpolation -
-                        %resample Uc(X,Y) and Vc(X,Y) onto UI(XI,YI) and
-                        %VI(XIt,YIt) where XI and YI are a list of every
-                        %pixel in the image plane. Velinterp is the type of
-                        %interpolation to use.
-                        UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
-                        VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
-
-                        if strcmpi(M,'Deform')
-                            XD1t = XI-UI/2 ;
-                            YD1t = YI-VI/2;
-                            XD2t = XI+UI/2;
-                            YD2t = YI+VI/2;
-
-                            % Preallocate memory for deformed images.
-                            im1dt = zeros(size(im1),imClass);
-                            im2dt = zeros(size(im2),imClass);
-
-                            % Deform images according to the interpolated velocity fields
-                            for k = 1:nChannels % Loop over all of the color channels in the image
-                                if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
-
-                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
-
-                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                    im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
-                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
-
-                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                                    bsplDegree = 7;  %order of the b-spline (0-7)
-                                    im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
-                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
-                                end
-                            end
-                        elseif strcmpi(M,'ForwardDeform') %only the 2nd image is deformed
-                            %XD1t = XI   ;
-                            %YD1t = YI   ;
-                            XD2t = XI+UI;
-                            YD2t = YI+VI;
-
-                            % Preallocate memory for deformed images.
-                            im1dt = im1;
-                            im2dt = zeros(size(im2),imClass);
-
-                            % Deform images according to the interpolated velocity fields
-                            for k = 1 : nChannels % Loop over all of the color channels in the image
-                                if Iminterp == 1 % Sinc interpolation (without blackman window)
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 3, 0);
-
-                                elseif Iminterp == 2 % Sinc interpolation with blackman filter
-                                    im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
-
-                                elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
-                                    im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic',0);
-
-                                elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
-                                    bsplDegree = 7;  %order of the b-spline (0-7)
-                                    im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
-                                end
-                            end
-                        else
-                            error('Trying to use deform with IM when not a deform method: Check pass method name.')
-                        end
-
-                        % Run image matching on deformed images
-                        [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
-                        uncertainty2D.Uimx=Uimx;
-                        uncertainty2D.Uimy=Uimy;
-                        uncertainty2D.Nump=Nump;
-                    else
-                        %leave empty for efficiency
-                        % uncertainty2D.Uimx=zeros(size(Xc));
-                        % uncertainty2D.Uimy=zeros(size(Xc));
-                        % uncertainty2D.Nump=zeros(size(Xc));
-                    end
-                                                
+                                                                   
                 else  %either first pass, or not deform
                     if ~strcmpi(Corr{e},'SPC')
                         if any(isnan(Ub(Eval>=0)))
                             keyboard
                         end
+                        %Uc, Vc will include Ub, Vb from previous pass or BWO 
                         [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
                             
                     else
+                        %Uc, Vc will include Ub, Vb from previous pass or BWO 
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
                         if uncertainty(e).imuncertainty==1
@@ -971,22 +871,114 @@ switch char(M)
                             uncertainty2D.Nump  = zeros(length(Xc),1);
                         end
                     end
-                    
-                    if uncertainty(e).imuncertainty==1
-                        % Perform image matching uncertainty estimation for
-                        % first pass
-                        [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc,Uc,Vc);
-                        uncertainty2D.Uimx=Uimx;
-                        uncertainty2D.Uimy=Uimy;
-                        uncertainty2D.Nump=Nump;
-                    else
-                        %leave empty
-                        % uncertainty2D.Uimx=zeros(size(X));
-                        % uncertainty2D.Uimy=zeros(size(X));
-                        % uncertainty2D.Nump=zeros(size(X));
-                    end
                 end
-               
+                
+                % Perform image matching uncertainty estimation using deform for
+                % DWO and deform correlation 
+                if uncertainty(e).imuncertainty==1
+                    %First deform the images based on current
+                    %velocity estimate U=Uc+Ub,V=Vc+Vb,
+
+                    %reshape from list of grid points to matrix
+                    Xt=reshape(X,[S(1),S(2)]);
+                    Yt=reshape(Y,[S(1),S(2)]);
+                    U=zeros(size(Xt),imClass);
+                    V=zeros(size(Xt),imClass);
+                    U(Eval>=0)=Uc(:,1);
+                    V(Eval>=0)=Vc(:,1);
+
+                    % %remove nans from data, replace with zeros
+                    % Ut(Eval<0|isinf(Ut))=0;Vt(Eval<0|isinf(Vt))=0;
+
+                    %velocity interpolation -
+                    %resample Uc(X,Y) and Vc(X,Y) onto UI(XI,YI) and
+                    %VI(XIt,YIt) where XI and YI are a list of every
+                    %pixel in the image plane. Velinterp is the type of
+                    %interpolation to use.
+                    UI = VFinterp(Xt,Yt,U,XI,YI,Velinterp);
+                    VI = VFinterp(Xt,Yt,V,XI,YI,Velinterp);
+
+                    if any(strcmpi(M,{'Multipass','Multigrid','Deform'})) %using one of the Central Difference methods
+                        XD1t = XI-UI/2 ;
+                        YD1t = YI-VI/2;
+                        XD2t = XI+UI/2;
+                        YD2t = YI+VI/2;
+
+                        % Preallocate memory for deformed images.
+                        im1dt = zeros(size(im1),imClass);
+                        im2dt = zeros(size(im2),imClass);
+                        
+                        %need to pick deform algorithm if method is not set
+                        if strcmpi(M,'Deform')
+                            IM_Iminterp = Iminterp;
+                        else %not a deform method, so Iminterp might not be set
+                            %bicubic is fast, but gives inferior results
+                            %pick Sinc+Blackman filter
+                            IM_Iminterp = 2;
+                        end
+
+                        % Deform images according to the interpolated velocity fields
+                        for k = 1:nChannels % Loop over all of the color channels in the image
+                            if IM_Iminterp == 1 % Sinc interpolation (without blackman window)
+                                im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t+0.5, 3, 0);
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t+0.5, 3, 0);
+
+                            elseif IM_Iminterp == 2 % Sinc interpolation with blackman filter
+                                im1dt(:, :, k) = whittaker_blackman(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 6, 1);
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                            elseif IM_Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                im1dt(:, :, k) = interp2(im1(:, :, k), XD1t + 0.5, YD1t + 0.5, 'cubic', 0);
+                                im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic', 0);
+
+                            elseif IM_Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                bsplDegree = 7;  %order of the b-spline (0-7)
+                                im1dt(:, :, k) = interp2(bsarray(im1(:, :, k),'degree',bsplDegree), XD1t + 0.5, YD1t + 0.5, 0);
+                                im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                            end
+                        end
+                    elseif strcmpi(M,'ForwardDeform') %only the 2nd image is deformed
+                        %XD1t = XI   ;
+                        %YD1t = YI   ;
+                        XD2t = XI+UI;
+                        YD2t = YI+VI;
+
+                        % Preallocate memory for deformed images.
+                        im1dt = im1;
+                        im2dt = zeros(size(im2),imClass);
+
+                        % Deform images according to the interpolated velocity fields
+                        for k = 1 : nChannels % Loop over all of the color channels in the image
+                            if Iminterp == 1 % Sinc interpolation (without blackman window)
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 3, 0);
+
+                            elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                                im2dt(:, :, k) = whittaker_blackman(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 6, 1);
+
+                            elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                                im2dt(:, :, k) = interp2(im2(:, :, k), XD2t + 0.5, YD2t + 0.5, 'cubic',0);
+
+                            elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                                bsplDegree = 7;  %order of the b-spline (0-7)
+                                im2dt(:, :, k) = interp2(bsarray(im2(:, :, k),'degree',bsplDegree), XD2t + 0.5, YD2t + 0.5, 0);
+                            end
+                        end
+                    else
+                        error('Method should be one of Multipass, Multigrid, Deform, or ForwardDeform')
+                    end
+
+                    % Run image matching on deformed images
+                    [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
+                    uncertainty2D.Uimx=Uimx;
+                    uncertainty2D.Uimy=Uimy;
+                    uncertainty2D.Nump=Nump;
+                else
+                    %leave empty for efficiency
+                    % uncertainty2D.Uimx=zeros(size(Xc));
+                    % uncertainty2D.Uimy=zeros(size(Xc));
+                    % uncertainty2D.Nump=zeros(size(Xc));
+                end
+
                 %Where Eval<0, no correlation was performed and Uc, etc are
                 %missing values.  Use Eval to fill in complete matrices U,V
                 %over all grid points X,Y.
@@ -2292,7 +2284,8 @@ switch char(M)
 
                         %need to pick deform algorithm if method is not set
                         if strcmpi(M,'Ensemble')
-                            %pick bicubic for speed
+                            %bicubic is fast, but gives inferior results
+                            %pick Sinc+Blackman filter
                             IM_Iminterp = 2;
                         else
                             IM_Iminterp = Iminterp;
