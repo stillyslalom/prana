@@ -1,4 +1,4 @@
-function [Uimx,Uimy,Nump]= run_image_matching_uncertainty(im1,im2,window,res,zpad,Zeromean,X,Y,Uin,Vin)
+function [Uimx,Uimy,Nump,DispX,DispY,CW]= run_image_matching_uncertainty(im1,im2,window,res,zpad,Zeromean,X,Y,Uin,Vin)
 % Input
 %im1, im2: deformed images for processing with deform or original images
 %for DWO
@@ -55,6 +55,10 @@ sfilt2 = windowmask([Sx Sy],[res(2, 1) res(2, 2)]);
 Uimx=zeros(length(X),1,imClass);
 Uimy=zeros(length(X),1,imClass);
 Nump=zeros(length(X),1,imClass);
+DispX = cell(length(X),1);
+DispY = cell(length(X),1);
+CW    = cell(length(X),1);
+
 
 for n=1:length(X)
     
@@ -99,10 +103,18 @@ for n=1:length(X)
     region1 = (zone1).*sfilt1;
     region2 = (zone2).*sfilt2;
     
+    dx = Uin(n) - (x2-x1);
+    dy = Vin(n) - (y2-y1);
     
-    [deltax,deltay,Np]=image_matching_prana(region1,region2);
+    [deltax,deltay,Np,dispx,dispy,cw]=image_matching_prana(region1,region2,dx,dy);
     Uimx(n)=deltax;
     Uimy(n)=deltay;
     Nump(n)=Np;
+    
+    if nargout>3
+        DispX{n} = dispx;
+        DispY{n} = dispy;
+        CW{n}    = cw;
+    end
 end
 end

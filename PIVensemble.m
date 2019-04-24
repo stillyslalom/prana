@@ -1,4 +1,4 @@
-function [X,Y,CC]=PIVensemble(im1,im2,tcorr,window,res,zpad,D,Zeromean,fracval,X,Y,Uin,Vin)
+function [X,Y,CC,AA1,AA2]=PIVensemble(im1,im2,tcorr,window,res,zpad,D,Zeromean,fracval,X,Y,uncertainty,Uin,Vin)
 % --- DPIV Ensemble Correlation ---
 imClass = 'double';
 
@@ -82,6 +82,17 @@ sfilt2 = windowmask([Nx Ny],[res(2, 1) res(2, 2)]);
 % sfilt12 = sfilt12( (Ny/2+1):(3*Ny/2) , (Nx/2+1):(3*Nx/2) ) / sum(sfilt1(:).*sfilt2(:));
 % % keyboard
 
+% If we are going to calculate MI, we need to save the autocorelations for
+% averaging later.  MC uncertainty needs the MI, but strictly speaking only
+% needs AA1 and AA2 if MI wasn't already calculated.  We should be forcing
+% MI on whenever MC is selected.
+if uncertainty.miuncertainty==1 % || uncertainty.mcuncertainty==1
+    AA1 = zeros(Sy,Sx,length(X),imClass);
+    AA2 = zeros(Sy,Sx,length(X),imClass);
+else 
+    AA1 = 0;
+    AA2 = 0;
+end
 
 %correlation plane normalization function (always off).  
 % This is only used in the DRPC code.
@@ -127,70 +138,70 @@ switch upper(tcorr)
 
         if size(im1,3) == 3
         Gens=zeros(Ny,Nx,3,imClass);
-        for n=1:length(X)
+            for n=1:length(X)
 
-            %apply the second order discrete window offset
-            x1 = X(n) - floor(round(Uin(n))/2);
-            x2 = X(n) +  ceil(round(Uin(n))/2);
+                %apply the second order discrete window offset
+                x1 = X(n) - floor(round(Uin(n))/2);
+                x2 = X(n) +  ceil(round(Uin(n))/2);
 
-            y1 = Y(n) - floor(round(Vin(n))/2);
-            y2 = Y(n) +  ceil(round(Vin(n))/2);
+                y1 = Y(n) - floor(round(Vin(n))/2);
+                y2 = Y(n) +  ceil(round(Vin(n))/2);
 
-            xmin1 = x1- ceil(Nx/2)+1;
-            xmax1 = x1+floor(Nx/2);
-            xmin2 = x2- ceil(Nx/2)+1;
-            xmax2 = x2+floor(Nx/2);
-            ymin1 = y1- ceil(Ny/2)+1;
-            ymax1 = y1+floor(Ny/2);
-            ymin2 = y2- ceil(Ny/2)+1;
-            ymax2 = y2+floor(Ny/2);
+                xmin1 = x1- ceil(Nx/2)+1;
+                xmax1 = x1+floor(Nx/2);
+                xmin2 = x2- ceil(Nx/2)+1;
+                xmax2 = x2+floor(Nx/2);
+                ymin1 = y1- ceil(Ny/2)+1;
+                ymax1 = y1+floor(Ny/2);
+                ymin2 = y2- ceil(Ny/2)+1;
+                ymax2 = y2+floor(Ny/2);
 
-            for r=1:size(im1,3);
-            %find the image windows
-            zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r );
-            zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r );
-            if size(zone1,1)~=Ny || size(zone1,2)~=Nx
-                w1 = zeros(Ny,Nx,imClass);
-                w1( 1+max([0 1-ymin1]):Ny-max([0 ymax1-L(1)]),1+max([0 1-xmin1]):Nx-max([0 xmax1-L(2)]) ) = zone1;
-                zone1 = w1;
+                for r=1:size(im1,3);
+                %find the image windows
+                zone1 = im1( max([1 ymin1]):min([L(1) ymax1]),max([1 xmin1]):min([L(2) xmax1]),r );
+                zone2 = im2( max([1 ymin2]):min([L(1) ymax2]),max([1 xmin2]):min([L(2) xmax2]),r );
+                if size(zone1,1)~=Ny || size(zone1,2)~=Nx
+                    w1 = zeros(Ny,Nx,imClass);
+                    w1( 1+max([0 1-ymin1]):Ny-max([0 ymax1-L(1)]),1+max([0 1-xmin1]):Nx-max([0 xmax1-L(2)]) ) = zone1;
+                    zone1 = w1;
+                end
+                if size(zone2,1)~=Ny || size(zone2,2)~=Nx
+                    w2 = zeros(Ny,Nx,imClass);
+                    w2( 1+max([0 1-ymin2]):Ny-max([0 ymax2-L(1)]),1+max([0 1-xmin2]):Nx-max([0 xmax2-L(2)]) ) = zone2;
+                    zone2 = w2;
+                end
+
+                if Zeromean==1
+                    zone1=zone1-mean(mean(zone1));
+                    zone2=zone2-mean(mean(zone2));
+                end
+
+                %apply the image spatial filter
+                region1 = (zone1).*sfilt1;
+                region2 = (zone2).*sfilt2;
+
+                %FFTs and Cross-Correlation
+                f1   = fftn(region1,[Sy Sx]);
+                f2   = fftn(region2,[Sy Sx]);
+                P21  = f2.*conj(f1);
+
+                %Standard Fourier Based Cross-Correlation
+                G = ifftn(P21,'symmetric');
+                G = G(fftindy,fftindx);
+                G = abs(G);
+                region1_std = std(region1(:));
+                region2_std = std(region2(:));
+                if region1_std == 0 || region2_std == 0
+                    Gens(:,:,r) = zeros(Ny,Nx);
+                else
+                    Gens(:,:,r) = G/region1_std/region2_std/length(region1(:));
+                end
+
+                %store correlation matrix
+                end
+                CC(:,:,n) = mean(Gens,3);
+                % CC(:,:,n) = mean(Gens,3)./sfilt12;
             end
-            if size(zone2,1)~=Ny || size(zone2,2)~=Nx
-                w2 = zeros(Ny,Nx,imClass);
-                w2( 1+max([0 1-ymin2]):Ny-max([0 ymax2-L(1)]),1+max([0 1-xmin2]):Nx-max([0 xmax2-L(2)]) ) = zone2;
-                zone2 = w2;
-            end
-            
-            if Zeromean==1
-                zone1=zone1-mean(mean(zone1));
-                zone2=zone2-mean(mean(zone2));
-            end
-            
-            %apply the image spatial filter
-            region1 = (zone1).*sfilt1;
-            region2 = (zone2).*sfilt2;
-
-            %FFTs and Cross-Correlation
-            f1   = fftn(region1,[Sy Sx]);
-            f2   = fftn(region2,[Sy Sx]);
-            P21  = f2.*conj(f1);
-
-            %Standard Fourier Based Cross-Correlation
-            G = ifftn(P21,'symmetric');
-            G = G(fftindy,fftindx);
-            G = abs(G);
-            region1_std = std(region1(:));
-            region2_std = std(region2(:));
-            if region1_std == 0 || region2_std == 0
-                Gens(:,:,r) = zeros(Ny,Nx);
-            else
-                Gens(:,:,r) = G/region1_std/region2_std/length(region1(:));
-            end
-            
-            %store correlation matrix
-            end
-            CC(:,:,n) = mean(Gens,3);
-%             CC(:,:,n) = mean(Gens,3)./sfilt12;
-        end
         else
             for n=1:length(X)
 
