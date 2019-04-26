@@ -2096,6 +2096,8 @@ switch char(M)
                         %I2dist = I2;
 
                         for q=1:length(I1dist)
+                            t1=tic;
+                            
                             if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
                                 loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1dist(q))]);
                                 im1 = cast(loaddata.I,imClass);
@@ -2156,8 +2158,9 @@ switch char(M)
                             
                             %need to pick deform algorithm if method is not set
                             if strcmpi(M,'Ensemble')
-                                %pick bicubic for speed
-                                IM_Iminterp = 3;
+                                %bicubic (3) is fast, but gives inferior results
+                                %pick Sinc+Blackman filter (2)
+                                IM_Iminterp = 2;
                             else
                                 IM_Iminterp = Iminterp;
                             end
@@ -2183,6 +2186,9 @@ switch char(M)
                                 end
                             end
                             
+                            IMdeformtime = toc(t1);
+                            fprintf('IM deformation %4.0f of %4.0f...      %0.2i:%0.2i.%0.0f\n',q,length(I1dist),floor(IMdeformtime/60),floor(rem(IMdeformtime,60)),floor((rem(IMdeformtime,60)-floor(rem(IMdeformtime,60)))*10))
+                            t1 = tic;
                             
                             % Run image matching on deformed images
                             %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
@@ -2206,7 +2212,10 @@ switch char(M)
                                 end
                             end
                             
-                        end
+                            IMdisptime = toc(t1);
+                            fprintf('IM disparity %4.0f of %4.0f...        %0.2i:%0.2i.%0.0f\n',q,length(I1dist),floor(IMdisptime/60),floor(rem(IMdisptime,60)),floor((rem(IMdisptime,60)-floor(rem(IMdisptime,60)))*10))
+
+                        end                        
                     end
                     
                     for i=1:length(dispx_dist)
@@ -2222,7 +2231,8 @@ switch char(M)
                     
                 else
                     for q=1:length(I1)
-
+                        t1 = tic;
+                        
                         %load image pair and flip coordinates
                         if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
                             loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(q))]);
@@ -2284,8 +2294,8 @@ switch char(M)
 
                         %need to pick deform algorithm if method is not set
                         if strcmpi(M,'Ensemble')
-                            %bicubic is fast, but gives inferior results
-                            %pick Sinc+Blackman filter
+                            %bicubic (3) is fast, but gives inferior results
+                            %pick Sinc+Blackman filter (2)
                             IM_Iminterp = 2;
                         else
                             IM_Iminterp = Iminterp;
@@ -2312,7 +2322,10 @@ switch char(M)
                             end
                         end
 
-
+                        IMdeformtime = toc(t1);
+                        fprintf('IM deformation %4.0f of %4.0f...      %0.2i:%0.2i.%0.0f\n',q,length(I1),floor(IMdeformtime/60),floor(rem(IMdeformtime,60)),floor((rem(IMdeformtime,60)-floor(rem(IMdeformtime,60)))*10))
+                        t1=tic;
+                        
                         % Run image matching on deformed images
                         %DispX, DispY, CW are DispX{length(Xc)}(Npeak,1)
                         [~,~,~,DispX,DispY,CW]= run_image_matching_uncertainty(im1dt,im2dt,Wsize(e,:),Wres(:, :, e),0,Zeromean(e),Xc,Yc);
@@ -2323,7 +2336,10 @@ switch char(M)
                             dispy{n} = [dispy{n};DispY{n}];
                             cw{n}    = [cw{n}   ;CW{n}   ];
                         end
-
+                        
+                        IMdisptime = toc(t1);
+                        
+                        fprintf('IM disparity %4.0f of %4.0f...        %0.2i:%0.2i.%0.0f\n',q,length(I1),floor(IMdisptime/60),floor(rem(IMdisptime,60)),floor((rem(IMdisptime,60)-floor(rem(IMdisptime,60)))*10))
                     end
                 end
                 
