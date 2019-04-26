@@ -24,26 +24,34 @@ end
 sr=1; %SEARCH RADIUS FOR MATCHING PARTICLES
 improduct=((region3).*(region4)); %PRODUCT OF INTENSITIES
 rp3=improduct(improduct~=min(improduct(:)));%GETTING RID OF MINIMUM
-thresh=0.5*rms(rp3(:));%SELECTING THRESHOLD 0.5 OF RMS OF INTENSITY PRODUCT
+if isempty(rp3)
+    NPeak = 0; %all points in improduct are equal (probably 0)
+else
+    thresh=0.5*rms(rp3(:));%SELECTING THRESHOLD 0.5 OF RMS OF INTENSITY PRODUCT
 
-improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
+    improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
 
-peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
+    peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
 
-cnt=peakmat(peakmat==1);
-NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    cnt=peakmat(peakmat==1);
+    NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+end
 
 k=1;
 %% If less than 6 peaks detected reduce the threshold and iterate 3 times
-while NPeak<=6 && k<=3
+while NPeak<=6 && k<=3 && ~isempty(rp3)
     
     improduct=((region3).*(region4));%PRODUCT OF INTENSITIES
     rp3=improduct(improduct~=min(improduct(:)));%GETTING RID OF MINIMUM
-    thresh=(1/2^k)*rms(rp3(:));%IF NO PEAK FOUND HALF THE THRESHOLD
-    improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
-    peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
-    cnt=peakmat(peakmat==1);
-    NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    if isempty(rp3)
+        NPeak = 0; %all points in improduct are equal (probably 0)
+    else
+        thresh=(1/2^k)*rms(rp3(:));%IF NO PEAK FOUND HALF THE THRESHOLD
+        improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
+        peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
+        cnt=peakmat(peakmat==1);
+        NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    end
     
     %fprintf('No particle found above threshold, threshold reduced to 0.5 rms');
     k=k+1;
@@ -54,6 +62,9 @@ end
 if NPeak==0
     deltax=nan;
     deltay=nan;
+    dispx = [];
+    dispy = [];
+    cw    = [];
     return;
 end
     
@@ -63,7 +74,8 @@ region4 = region4-min(min(region4));
 
 % Find coordinates for detected peaks
 [Indylist,Indxlist] =find(peakmat(:,:)==1);
-improduct2=diag(improduct(Indylist,Indxlist));% Find the intensity product
+%improduct2=diag(improduct(Indylist,Indxlist));% Find the intensity product
+improduct2=improduct(sub2ind(size(improduct),Indylist,Indxlist));% Find the intensity product at each peak
 %values at detected peak location
 cw=(improduct2).^(0.5);%WEIGHTING FUNCTION
 
