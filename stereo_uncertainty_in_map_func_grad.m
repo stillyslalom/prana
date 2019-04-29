@@ -1,4 +1,4 @@
-function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=Uncertainty_propagation_through_mapping_function_gradient(calmat,xg,yg,zg,Uncalcoeff,unwx,unwy,unwz)
+function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=stereo_uncertainty_in_map_func_grad(calmat,xg,yg,zg,Uncalcoeff,unwx,unwy,unwz)
 % This function calculates the uncertainty in the mapping function gradients and subsequesntly the angle uncertainty
 %written by Sayantan Bhattacharya January 2016    
 [r,c]=size(xg);

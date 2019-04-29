@@ -1,4 +1,4 @@
-function [xg,yg,Uncal,Ux,Uy,Uz,z1grid,caldatamod]=uncertainty_in_xyz_calcoeff(caldata,dispfield,xgrid1,ygrid1)
+function [xg,yg,Uncal,Ux,Uy,Uz,z1grid,caldatamod]=stereo_uncertainty_in_xyz_calcoeff(caldata,dispfield,xgrid1,ygrid1)
 % This function calculates the uncertainty in the world coordinates and the
 % uncertainty in the calibration coefficients using uncertainty propagation
 % through triangulation
