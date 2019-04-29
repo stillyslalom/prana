@@ -47,6 +47,13 @@ function [outputdirlist,dewarp_grid,scaling]=imagedewarp_predefined_grid(caldata
 %     You should have received a copy of the GNU General Public License
 %     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+%imagedewarp.m now handles predefined grids, use it instead
+%return a warning - should replace all calls to imagedewarp_predefined_grid
+warning('imagedewarp_predefined_grid() is deprecated, calling imagedewarp instead')
+[outputdirlist,dewarp_grid,scaling] = imagedewarp(caldata,dewarpmethod,imagelist,vectorlist,xingrid,yingrid,zingrid);
+
+return
+%{
 
 %keyboard;
 orderz=caldata.modeltype;
@@ -507,4 +514,5 @@ else             % pinhole
     
 end
 end
+%}
 %}
