@@ -60,6 +60,11 @@ if str2double(verstr(1:4))<2009
     errordlg('Prana requires Matlab R2009 or later.', 'prana')
 end
 
+if ~isempty(varargin) && strcmpi(varargin(1),'selfcal')
+    disp('Calling selfcal version')
+end
+
+
 try
     %JJC 2011-12-22:
     % this can cause problems if defaultsettings.mat exists, but is from a previous version
@@ -141,10 +146,15 @@ handles.data.outdirec=pwd;
 
 try
     windowdiagram=imread(fullfile(pranadir(1:end-8),'documentation','windowdiagram.tif'),'tif');
+    windowdiagram = double(windowdiagram);
+    windowdiagram = (windowdiagram(1:3:end,:,:)+windowdiagram(2:3:end,:,:)+windowdiagram(3:3:end,:,:))/3;
+    windowdiagram = uint8((windowdiagram(:,1:3:end,:)+windowdiagram(:,2:3:end,:)+windowdiagram(:,3:3:end,:))/3);
 catch
     windowdiagram=zeros(564,531);
 end
-set(gca,'children',imshow(windowdiagram));
+% set(gca,'children',imshow(windowdiagram));
+idx_windowdiagram = find(strcmpi(get(handles.gridsetuppanel.Children,'type'),'axes'),1,'last');
+set(handles.gridsetuppanel.Children(idx_windowdiagram),'children',imshow(windowdiagram));
 axis off;
 
 % the following commented lines were the original commands used by the
@@ -5829,6 +5839,14 @@ else
         end
     end
     
+    %check if we want to build the feature-limited selfcal version of prana
+    if ~isempty(varargin) && strcmpi(varargin(1),'selfcal')
+        gui_selfcal = 1;
+    else
+        gui_selfcal = 0;
+    end
+
+    
     % Open fig file with stored settings.  Note: This executes all component
     % specific CreateFunctions with an empty HANDLES structure.
 
@@ -5840,7 +5858,7 @@ else
     % only used by actxproxy at this time.   
     setappdata(0,genvarname(['OpenGuiWhenRunning_', gui_State.gui_Name]),1);
     if gui_Exported
-        gui_hFigure = feval(gui_State.gui_LayoutFcn, gui_SingletonOpt);
+        gui_hFigure = feval(gui_State.gui_LayoutFcn, gui_SingletonOpt, gui_selfcal);
 
         % make figure invisible here so that the visibility of figure is
         % consistent in OpeningFcn in the exported GUI case
