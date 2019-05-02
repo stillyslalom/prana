@@ -76,6 +76,7 @@ if strcmp(dewarpmethod,'Willert')
     dirsave=imagelist.outdirec;
     dirout1=fullfile(dirsave,['Dewarped Images1',filesep]);
     dirout2=fullfile(dirsave,['Dewarped Images2',filesep]);
+    Iminterp = str2double(imagelist.iminterp);  %1=Sinc, 2=Sinc w/ Blackman, 3=Bicubic, 4=B-splines
 
     if ~exist(dirout1,'dir')
         mkdir(dirout1);
@@ -502,6 +503,7 @@ dewarp_grid.Xgrid2=Xgrid2;
 dewarp_grid.Ygrid2=Ygrid2;
 dewarp_grid.xgrid=xgrid;
 dewarp_grid.ygrid=ygrid;
+dewarp_grid.zgrid=zgrid;
 
 % keyboard;
 %scaling is only an estimate returned as an output, and is not used in the
@@ -555,13 +557,35 @@ if strcmp(dewarpmethod,'Willert')
             %flipping images
             IMLi=double(IMLi(end:-1:1,:));
             IMRi=double(IMRi(end:-1:1,:));
-            %Interpolating on a common grid
-            %sincBlackmanInterp2 assumes images are on grid [1 NX] and [1 NY]
-%             IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
-%             IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
-            IMLo=((interp2(IMLi, Xgrid1, Ygrid1, 'cubic',0)));
-            IMRo=((interp2(IMRi, Xgrid2, Ygrid2, 'cubic',0)));
             
+            %Interpolating on a common grid
+            % %sincBlackmanInterp2 assumes images are on grid [1 NX] and [1 NY]
+            % IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
+            % IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
+            % % %use bicubic interp2 for speed
+            % % IMLo=((interp2(IMLi, Xgrid1, Ygrid1, 'cubic',0)));
+            % % IMRo=((interp2(IMRi, Xgrid2, Ygrid2, 'cubic',0)));
+            
+            %choose method based on p
+            %color channels ignored - this won't work on color images
+            c=1;
+            if Iminterp == 1 % Sinc interpolation (without blackman window)
+                IMLo = whittaker_blackman(IMLi(:, :, c), Xgrid1, Ygrid1, 3, 0);
+                IMRo = whittaker_blackman(IMRi(:, :, c), Xgrid2, Ygrid2, 3, 0);
+                
+            elseif Iminterp == 2 % Sinc interpolation with blackman filter
+                IMLo = whittaker_blackman(IMLi(:, :, c), Xgrid1, Ygrid1, 6, 1);
+                IMRo = whittaker_blackman(IMRi(:, :, c), Xgrid2, Ygrid2, 6, 1);
+                
+            elseif Iminterp == 3 % Matlab interp2 option added to avoid memory intensive processing
+                IMLo = interp2(IMLi(:, :, c), Xgrid1, Ygrid1, 'cubic',0);
+                IMRo = interp2(IMRi(:, :, c), Xgrid2, Ygrid2, 'cubic',0);
+                
+            elseif Iminterp == 4 % 7th-order Bspline interpolation using @bsarry class
+                bsplDegree = 7;  %order of the b-spline (0-7)
+                IMLo = interp2(bsarray(IMLi(:, :, c),'degree',bsplDegree), Xgrid1, Ygrid1, 0);
+                IMRo = interp2(bsarray(IMRi(:, :, c),'degree',bsplDegree), Xgrid2, Ygrid2, 0);
+            end
             
             %  keyboard;
             %flipping them back for saving
