@@ -7,13 +7,14 @@ function [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,dewarpmethod,im
 %dewarpmethod='Soloff' or 'Willert
 %imagelist=list containing directories of individual camera images (for Willert or selfcal)
 %vectorlist=list containing directories of individual camera vector fields(Soloff)
+%xingrid=input x vector grid on which you want your output vectors
+%yingrid=input y vector grid on which you want your output vectors
+%zingrid=input z vector grid on which you want your output vectors
 %Outputs:-
 %outputdirlist=dewarped image output directories
 %dewarp_grid=dewarped grid coordinates
 %scaling=magnification based on dewarped grid
 
-%xingrid=input x vector grid on which you want your output vectors
-%yingrid=input y vector grid on which you want your output vectors
 % both xingrid and yingrid are monotonic 1-D vectors suitable for meshgrid
 %pranagridbuffer=8(let);
 

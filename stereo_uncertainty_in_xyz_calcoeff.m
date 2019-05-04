@@ -320,6 +320,7 @@ Unrandcal=abs(randpcal-randncal)./2;
 Uncal=sqrt(Unbiascal.^2+Unrandcal.^2+Uncalfit1.^2);
 end
 
+%{
 function [z1grid]= geometricTriangulation(xgrid,x2grid,ygrid,y2grid,zgrid,Dux,Duy,aXcam1,aYcam1,aXcam2,aYcam2,caldata)
 
 %function for calculating local viewing angles and Triangulation
@@ -487,6 +488,7 @@ z1grid=zgrid;
 %figure(4);surf(z1grid);
 
 end
+%}
 
 function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage,Uncal] = fitmodels_mod(allx1data,...
     allx2data,allX1data,allX2data,modeltype,~)
