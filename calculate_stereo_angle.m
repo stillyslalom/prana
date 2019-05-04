@@ -1,4 +1,4 @@
-function [tanalpha,tanbeta]=calculate_stereo_angle(calmat,xg,yg,zg,modeltype)
+function [tanalpha,tanbeta,dFdx1,dFdx2,dFdx3]=calculate_stereo_angle(calmat,xg,yg,zg,modeltype)
 %calculate_stereo_angle calculates the tangent of the camera angles
 %   This function calculates the tangent of the camera angles based on the
 %   mapping function gradient.

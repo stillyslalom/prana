@@ -131,6 +131,8 @@ for j=1:nof
         % Compute gradients of calibration functions
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         aall=[caldata.aXcam1 caldata.aYcam1 caldata.aXcam2 caldata.aYcam2];
+        
+        %{
         dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
         dFdx2=zeros(rows,cols,4);
         dFdx3=zeros(rows,cols,4);
@@ -184,28 +186,31 @@ for j=1:nof
             end
         end
         
-        alpha1 = ((dFdx3(:,:,2).*dFdx2(:,:,1))-(dFdx2(:,:,2).*dFdx3(:,:,1)))./(dFdx2(:,:,2).*dFdx1(:,:,1)-dFdx1(:,:,2).*dFdx2(:,:,1));
-        beta1  = ((dFdx3(:,:,2).*dFdx1(:,:,1))-(dFdx1(:,:,2).*dFdx3(:,:,1)))./(dFdx1(:,:,2).*dFdx2(:,:,1)-dFdx2(:,:,2).*dFdx1(:,:,1));
+        tanalpha1 = ((dFdx3(:,:,2).*dFdx2(:,:,1))-(dFdx2(:,:,2).*dFdx3(:,:,1)))./(dFdx2(:,:,2).*dFdx1(:,:,1)-dFdx1(:,:,2).*dFdx2(:,:,1));
+        tanbeta1  = ((dFdx3(:,:,2).*dFdx1(:,:,1))-(dFdx1(:,:,2).*dFdx3(:,:,1)))./(dFdx1(:,:,2).*dFdx2(:,:,1)-dFdx2(:,:,2).*dFdx1(:,:,1));
         
-        alpha2 = ((dFdx3(:,:,4).*dFdx2(:,:,3))-(dFdx2(:,:,4).*dFdx3(:,:,3)))./(dFdx2(:,:,4).*dFdx1(:,:,3)-dFdx1(:,:,4).*dFdx2(:,:,3));
-        beta2  = ((dFdx3(:,:,4).*dFdx1(:,:,3))-(dFdx1(:,:,4).*dFdx3(:,:,3)))./(dFdx1(:,:,4).*dFdx2(:,:,3)-dFdx2(:,:,4).*dFdx1(:,:,3));
-        
+        tanalpha2 = ((dFdx3(:,:,4).*dFdx2(:,:,3))-(dFdx2(:,:,4).*dFdx3(:,:,3)))./(dFdx2(:,:,4).*dFdx1(:,:,3)-dFdx1(:,:,4).*dFdx2(:,:,3));
+        tanbeta2  = ((dFdx3(:,:,4).*dFdx1(:,:,3))-(dFdx1(:,:,4).*dFdx3(:,:,3)))./(dFdx1(:,:,4).*dFdx2(:,:,3)-dFdx2(:,:,4).*dFdx1(:,:,3));
+        %}
     end
     
+    [tanalpha1,tanbeta1]=calculate_stereo_angle(aall(:,1:2),xgrid,ygrid,zgrid,caldata.modeltype);
+    [tanalpha2,tanbeta2]=calculate_stereo_angle(aall(:,3:4),xgrid,ygrid,zgrid,caldata.modeltype);
+
     % Display camera angles for reference
 %     
 %     figure(100); subplot(2,2,1);
-%     imagesc(atand(alpha1)); colorbar; %caxis([25 30]);
+%     imagesc(atand(tanalpha1)); colorbar; %caxis([25 30]);
 %     title('Camera 1 Angle \alpha1','FontSize',16)
 %     subplot(2,2,2);
-%     imagesc(atand(alpha2)); colorbar; %caxis([-30 -25]);
+%     imagesc(atand(tanalpha2)); colorbar; %caxis([-30 -25]);
 %     title('Camera 2 Angle \alpha2','FontSize',16)
 %     subplot(2,2,3);
-%     imagesc(atand(beta1)); colorbar; %caxis([-2 2]);(end-(zed+10):end-(zed+5))
+%     imagesc(atand(tanbeta1)); colorbar; %caxis([-2 2]);(end-(zed+10):end-(zed+5))
 %     title('Camera 1 Angle \beta1','FontSize',16)
 %     subplot(2,2,4);
-%     imagesc(atand(beta2)); colorbar; %caxis([-2 2]);
-%     title('Camera 1 Angle \beta1','FontSize',16)
+%     imagesc(atand(tanbeta2)); colorbar; %caxis([-2 2]);
+%     title('Camera 1 Angle \beta2','FontSize',16)
 %     
 %     keyboard;
     
@@ -215,46 +220,46 @@ for j=1:nof
     % Stereo-PIV comes to be                                        %
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %     keyboard
-    if min(abs(atand(beta1(:))))< 8 && min(abs(atand(beta2(:))))< 8
+    if min(abs(atand(tanbeta1(:))))< 8 && min(abs(atand(tanbeta2(:))))< 8
         % This is implemented if there is no significant Y-axis tilt
-        %         x = (X2.*alpha1-X1.*alpha2)./(alpha1-alpha2);
+        %         x = (X2.*tanalpha1-X1.*tanalpha2)./(tanalpha1-tanalpha2);
         x = (X1+X2)/2;
         %
-        %         y = (Y1+Y2)/2+((X2-X1)/2).*((beta2-beta1)./(alpha1-alpha2));
+        %         y = (Y1+Y2)/2+((X2-X1)/2).*((tanbeta2-tanbeta1)./(tanalpha1-tanalpha2));
         y = (Y1+Y2)/2;
         %
-        u = (u2.*alpha1-u1.*alpha2)./(alpha1-alpha2);                       % U velocity reconstruction
+        u = (u2.*tanalpha1-u1.*tanalpha2)./(tanalpha1-tanalpha2);                       % U velocity reconstruction
         %
-        v = (v1+v2)/2+((u2-u1)/2).*((beta2+beta1)./(alpha1-alpha2));        % V velocity reconstruction
+        v = (v1+v2)/2+((u2-u1)/2).*((tanbeta2+tanbeta1)./(tanalpha1-tanalpha2));        % V velocity reconstruction
         % yg
-        w = (u2-u1)./(alpha1-alpha2);                                       % W velocity reconstruction
-    elseif min(abs(atand(alpha1(:)))) < 8 && min(abs(atand(alpha2(:)))) < 8
+        w = (u2-u1)./(tanalpha1-tanalpha2);                                       % W velocity reconstruction
+    elseif min(abs(atand(tanalpha1(:)))) < 8 && min(abs(atand(tanalpha2(:)))) < 8
         % This is implemented if there is no significant X-axis tilt
-        %         x = (X1+X2)/2+((Y2-Y1)/2).*((alpha2-alpha1)./(beta1-beta2));
+        %         x = (X1+X2)/2+((Y2-Y1)/2).*((tanalpha2-tanalpha1)./(tanbeta1-tanbeta2));
         x = (X1+X2)/2;
         %
-        %         y = (Y2.*beta1-Y1.*beta2)./(beta1-beta2);
+        %         y = (Y2.*tanbeta1-Y1.*tanbeta2)./(tanbeta1-tanbeta2);
         y = (Y1+Y2)/2;
         %
-        u = (u1+u2)/2+((v2-v1)/2).*((alpha2+alpha1)./(beta1-beta2));        % U velocity reconstruction
+        u = (u1+u2)/2+((v2-v1)/2).*((tanalpha2+tanalpha1)./(tanbeta1-tanbeta2));        % U velocity reconstruction
         %
-        v = (v2.*beta1-v1.*beta2)./(beta1-beta2);                           % V velocity reconstruction
+        v = (v2.*tanbeta1-v1.*tanbeta2)./(tanbeta1-tanbeta2);                           % V velocity reconstruction
         %
-        w = (v2-v1)./(beta1-beta2);                                         % W velocity reconstruction
+        w = (v2-v1)./(tanbeta1-tanbeta2);                                         % W velocity reconstruction
     else
         %         keyboard
         %
-        %         x = (X2.*alpha1-X1.*alpha2)./(alpha1-alpha2);
+        %         x = (X2.*tanalpha1-X1.*tanalpha2)./(tanalpha1-tanalpha2);
         x = (X1+X2)/2;
         %
-        %         y = (Y2.*beta1-Y1.*beta2)./(beta1-beta2);
+        %         y = (Y2.*tanbeta1-Y1.*tanbeta2)./(tanbeta1-tanbeta2);
         y = (Y1+Y2)/2;
         %
-        u = (u2.*alpha1-u1.*alpha2)./(alpha1-alpha2);                       % U velocity reconstruction
+        u = (u2.*tanalpha1-u1.*tanalpha2)./(tanalpha1-tanalpha2);                       % U velocity reconstruction
         %
-        v = (v2.*beta1-v1.*beta2)./(beta1-beta2);                           % V velocity reconstruction
+        v = (v2.*tanbeta1-v1.*tanbeta2)./(tanbeta1-tanbeta2);                           % V velocity reconstruction
         %
-        w = (u2-u1)./(alpha1-alpha2);                                       % W velocity reconstruction
+        w = (u2-u1)./(tanalpha1-tanalpha2);                                       % W velocity reconstruction
     end
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

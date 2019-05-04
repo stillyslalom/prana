@@ -81,10 +81,12 @@ zg=zeros(size(xg));
 %% calculate the uncertainty in the angles using uncertainty in x,y,x and calibration coefficients and the mapping function gradient
 
 % calculate angles
-[tanalpha1,tanalpha2,tanbeta1,tanbeta2]=calculate_angle(calmat,xg,yg,zg,caljob.modeltype);
+% [tanalpha1,tanalpha2,tanbeta1,tanbeta2]=calculate_angle(calmat,xg,yg,zg,caljob.modeltype);
+[tanalpha1,tanbeta1]=calculate_stereo_angle(calmat(:,1:2),xg,yg,zg,caljob.modeltype);
+[tanalpha2,tanbeta2]=calculate_stereo_angle(calmat(:,3:4),xg,yg,zg,caljob.modeltype);
 
 % Find uncertainty in mapping fuction gradient and stereo angles
-[Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=stereo_uncertainty_in_map_func_grad(calmat,xg,yg,zg,Uncalcoeff,Ux,Uy,Uz);
+[Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=stereo_uncertainty_in_map_func_grad(calmat,xg,yg,zg,Uncalcoeff,Ux,Uy,Uz,caljob.modeltype);
 
 % figure;
 % subplot(2,2,1);imagesc(rad2deg(atan(alpha1)));colorbar;title('alpha1');
@@ -103,6 +105,8 @@ zg=zeros(size(xg));
 
 
 end
+
+%{
 function [tanalpha1,tanalpha2,tanbeta1,tanbeta2]=calculate_angle(calmat,xg,yg,zg,modeltype)
 % This function calculates the tangent of the camera angles based on the
 % mapping function gradient
@@ -171,4 +175,4 @@ tanbeta2=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./((dFdx1
 
 
 end
-
+%}

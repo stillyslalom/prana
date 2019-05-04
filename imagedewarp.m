@@ -414,6 +414,8 @@ end
 % Compute gradients of calibration functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 aall=[caldata.aXcam1 caldata.aYcam1 caldata.aXcam2 caldata.aYcam2];
+
+%{
 dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
 dFdx2=zeros(rows,cols,4);
 dFdx3=zeros(rows,cols,4);
@@ -468,28 +470,33 @@ elseif caldata.modeltype==4
         
 end
 
-alpha1 = ((dFdx3(:,:,2).*dFdx2(:,:,1))-(dFdx2(:,:,2).*dFdx3(:,:,1)))./(dFdx2(:,:,2).*dFdx1(:,:,1)-dFdx1(:,:,2).*dFdx2(:,:,1));
-beta1  = ((dFdx3(:,:,2).*dFdx1(:,:,1))-(dFdx1(:,:,2).*dFdx3(:,:,1)))./(dFdx1(:,:,2).*dFdx2(:,:,1)-dFdx2(:,:,2).*dFdx1(:,:,1));
+tanalpha1 = ((dFdx3(:,:,2).*dFdx2(:,:,1))-(dFdx2(:,:,2).*dFdx3(:,:,1)))./(dFdx2(:,:,2).*dFdx1(:,:,1)-dFdx1(:,:,2).*dFdx2(:,:,1));
+tanbeta1  = ((dFdx3(:,:,2).*dFdx1(:,:,1))-(dFdx1(:,:,2).*dFdx3(:,:,1)))./(dFdx1(:,:,2).*dFdx2(:,:,1)-dFdx2(:,:,2).*dFdx1(:,:,1));
 
-alpha2 = ((dFdx3(:,:,4).*dFdx2(:,:,3))-(dFdx2(:,:,4).*dFdx3(:,:,3)))./(dFdx2(:,:,4).*dFdx1(:,:,3)-dFdx1(:,:,4).*dFdx2(:,:,3));
-beta2  = ((dFdx3(:,:,4).*dFdx1(:,:,3))-(dFdx1(:,:,4).*dFdx3(:,:,3)))./(dFdx1(:,:,4).*dFdx2(:,:,3)-dFdx2(:,:,4).*dFdx1(:,:,3));
+tanalpha2 = ((dFdx3(:,:,4).*dFdx2(:,:,3))-(dFdx2(:,:,4).*dFdx3(:,:,3)))./(dFdx2(:,:,4).*dFdx1(:,:,3)-dFdx1(:,:,4).*dFdx2(:,:,3));
+tanbeta2  = ((dFdx3(:,:,4).*dFdx1(:,:,3))-(dFdx1(:,:,4).*dFdx3(:,:,3)))./(dFdx1(:,:,4).*dFdx2(:,:,3)-dFdx2(:,:,4).*dFdx1(:,:,3));
+%}
+
+[tanalpha1,tanbeta1]=calculate_stereo_angle(aall(:,1:2),xgrid,ygrid,zgrid,caldata.modeltype);
+[tanalpha2,tanbeta2]=calculate_stereo_angle(aall(:,3:4),xgrid,ygrid,zgrid,caldata.modeltype);
+
 
 %Display camera angles for reference
     
 figure(100); subplot(2,2,1);
-imagesc(atand(alpha1)); colorbar; %caxis([25 30]);
+imagesc(atand(tanalpha1)); colorbar; %caxis([25 30]);
 title('Camera 1 Angle \alpha1','FontSize',16)
 subplot(2,2,2);
-imagesc(atand(alpha2)); colorbar; %caxis([-30 -25]);
+imagesc(atand(tanalpha2)); colorbar; %caxis([-30 -25]);
 title('Camera 2 Angle \alpha2','FontSize',16)
 subplot(2,2,3);
-imagesc(atand(beta1)); colorbar; %caxis([-2 2]);(end-(zed+10):end-(zed+5))
+imagesc(atand(tanbeta1)); colorbar; %caxis([-2 2]);(end-(zed+10):end-(zed+5))
 title('Camera 1 Angle \beta1','FontSize',16)
 subplot(2,2,4);
-imagesc(atand(beta2)); colorbar; %caxis([-2 2]);
+imagesc(atand(tanbeta2)); colorbar; %caxis([-2 2]);
 title('Camera 1 Angle \beta1','FontSize',16)
 
-[mean(atand(alpha1(:))) mean(atand(alpha2(:))) mean(atand(beta1(:))) mean(atand(beta2(:)))]
+[mean(atand(tanalpha1(:))) mean(atand(tanalpha2(:))) mean(atand(tanbeta1(:))) mean(atand(tanbeta2(:)))]
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

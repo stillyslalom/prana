@@ -1,4 +1,4 @@
-function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=stereo_uncertainty_in_map_func_grad(calmat,xg,yg,zg,Uncalcoeff,unwx,unwy,unwz)
+function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2]=stereo_uncertainty_in_map_func_grad(calmat,xg,yg,zg,Uncalcoeff,unwx,unwy,unwz,modeltype)
 % This function calculates the uncertainty in the mapping function gradients and subsequesntly the angle uncertainty
 %written by Sayantan Bhattacharya January 2016    
 [r,c]=size(xg);
@@ -9,7 +9,12 @@ Un_dFdx1=zeros(r,c,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1
 Un_dFdx2=zeros(r,c,4);
 Un_dFdx3=zeros(r,c,4);
 
+% Mapping function gradient
+[~,~,dFdx1(:,:,1:2),dFdx2(:,:,1:2),dFdx3(:,:,1:2)]=calculate_stereo_angle(calmat(:,1:2),xg,yg,zg,modeltype);
+[~,~,dFdx1(:,:,3:4),dFdx2(:,:,3:4),dFdx3(:,:,3:4)]=calculate_stereo_angle(calmat(:,3:4),xg,yg,zg,modeltype);
+
 for gg=1:4
+    %{
     a=calmat(:,gg);
     %        Uc=uncoeff(:,gg);
     
@@ -22,6 +27,8 @@ for gg=1:4
     
     dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + 2*a(10)*zg + a(15)*xg.^2 + a(16)*xg.*yg + ...
         a(17)*yg.^2 + 2*a(18)*xg.*zg + 2*a(19)*yg.*zg;
+    %}
+    
     % Second order derivative
     cfxx=2*a(5) +6*a(11)*xg + 2*a(12)*yg + 2*a(15)*zg ;
     cfxy=a(6) + 2*a(12)*xg +  2*a(13)*yg + a(16)*zg ;

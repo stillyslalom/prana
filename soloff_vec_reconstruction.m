@@ -118,7 +118,7 @@ for j=1:nof
     dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
     dFdx2=zeros(rows,cols,4);
     dFdx3=zeros(rows,cols,4);
-    
+    %{
     if caldata.modeltype==1
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
@@ -169,6 +169,11 @@ for j=1:nof
         end
         
     end
+    %}
+    
+    [~,~,dFdx1(:,:,1:2),dFdx2(:,:,1:2),dFdx3(:,:,1:2)]=calculate_stereo_angle(aall(:,1:2),xgrid,ygrid,zgrid,caldata.modeltype);
+    [~,~,dFdx1(:,:,3:4),dFdx2(:,:,3:4),dFdx3(:,:,3:4)]=calculate_stereo_angle(aall(:,3:4),xgrid,ygrid,zgrid,caldata.modeltype);
+
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% Reconstruct the vectors according to Soloff, meas. sci. tech., 1997

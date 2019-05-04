@@ -26,6 +26,8 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
 % Viewing angles for camera 1 calculated at gridpoints xgrid,ygrid;
 
  aall=[aXcam1 aYcam1 aXcam2 aYcam2];
+ 
+ %{
  dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
  dFdx2=zeros(rows,cols,4);
  dFdx3=zeros(rows,cols,4);
@@ -85,7 +87,12 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
 
 alphatan(:,:,1)=(((dFdx3(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx3(:,:,1)))./((dFdx2(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx2(:,:,1))));
 betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./((dFdx1(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx1(:,:,1))));
+%}
 
+[alphatan(:,:,1),betatan(:,:,1)]=calculate_stereo_angle(aall(:,1:2),xgrid,ygrid,zgrid,caldata.modeltype);
+
+ 
+%{ 
 %aall=[aXcam1 aYcam1 aXcam2 aYcam2];
 %    dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
 %    dFdx2=zeros(rows,cols,4);
@@ -147,6 +154,12 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
 
 alphatan(:,:,2)=(((dFdx3(:,:,4).*dFdx2(:,:,3)) - (dFdx2(:,:,4).*dFdx3(:,:,3)))./((dFdx2(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx2(:,:,3))));
 betatan(:,:,2)=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./((dFdx1(:,:,4).*dFdx2(:,:,3)) - (dFdx2(:,:,4).*dFdx1(:,:,3))));
+%}
+
+[alphatan(:,:,2),betatan(:,:,2)]=calculate_stereo_angle(aall(:,3:4),x2grid,y2grid,zgrid,caldata.modeltype);
+
+
+
 %keyboard;
 
 %Display camera angles for reference
