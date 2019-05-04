@@ -493,7 +493,7 @@ caldatamod.convergemessage=convergemessage; % Storing the convergence informatio
 convergemessage; % displaying convergemeaasge
 end
 
-
+%{
 function [z1grid]= geometricTriangulation(xgrid,x2grid,ygrid,y2grid,zgrid,Dux,Duy,aXcam1,aYcam1,aXcam2,aYcam2,caldata)
 
 %function for calculating local viewing angles and Triangulation
@@ -746,3 +746,4 @@ z1grid=zgrid;
 %figure(4);surf(z1grid);
 
 end
+%}
