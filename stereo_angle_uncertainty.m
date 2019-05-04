@@ -1,38 +1,40 @@
-function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tanbeta2]=stereo_angle_uncertainty(caljob,planarjob,dispfield,disp_uncertainty_filedir)
+function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tanbeta2]=stereo_angle_uncertainty(caljob,planarjob,dispfield,dispuncfield,dewarpgrid)
 %This function calculates the stereo angle uncertainties 
-
+%
 % Input Variables
-
+%
 %caljob= This is the calibration job structure generated through Prana
 %Calibration and conatins the calibration mapping function coefficients and
 %the calibration parameters.
 %caljob.aXcam1 caljob.aYcam1 caljob.aXcam2 caljob.aYcam2 gives the X and Y
 %mapping function coefficents (polynomial model) for camera 1 and 2. This
 %can be before or after self-calibration and can be obtained using Prana.
-
+%
 %caljob.modeltype=1 for polynomial model (cubic in x and y and linear in z) 
 %caljob.modeltype=2 for polynomial model (cubic in x and y and quadratic in z)
-
+%
 %world coordinates (from prana calibration)
 %caljob.allx1data= [x,y,z] world coordinates of calibration grid points for camera1
 %caljob.allx2data= [x,y,z] world coordinates of calibration grid points for camera2
 %caljob.allX1data= [X,Y] image coordinates of calibration grid points for camera1
 %caljob.allX2data= [X,Y] image coordinates of calibration grid points for camera2
-
+%
 %planarjob= The 2D prana jobfile for correlating each camera image pair,
 %This argument contains the individual camera imagelist which is used to dewarp the images using the function
 %"imagedewarp_alone()". This input can be replaced by "dewarp_grid"
 %variable, which essentially contains the dewarped x and y grid on the
 %common region of overlap between two cameras.
-
+%
 %dispfield is a structure which contains the disparity field between
 %two cameras. The fields in the structure are U,V,X and Y corresponding to
 %a disparity vector map obtained using ensemble correlation of two camera
 %images at the same time instant.
-
-
-%disp_uncertainty_filedir= The directory to store the calculated uncertainty in each disparity vector or
-%load the uncertainty from a previously calculated matfile in this directory.
+%
+%dispuncfield = A structure that contains the calculated uncertainty in each disparity vector.  
+%Uncertainties are stored in fields as Unwx and Unwy with same scaling as dispfield
+%
+%dewarpgrid = a structure with the dewarped x and y coordinate grid on the overlapping camera domain.
+%The fields are xgrid and ygrid.
 
 % Output Variables
 % tanalpha1,tanalpha2,tanbeta1,tanbeta2= tangent of the stereo angles alpha
@@ -60,22 +62,19 @@ calmat=[caljob.aXcam1 caljob.aYcam1 caljob.aXcam2 caljob.aYcam2];
 % y for each disparity vector is determined. This is in essence an ensemble
 % image matching technique.
 
-loadensmdspfld=load([disp_uncertainty_filedir,'ensemble_IM_uncertainty.mat']);
-Unwx=loadensmdspfld.Unwx;% Uncertainty in X-direction for disparity vector
-Unwy=loadensmdspfld.Unwy;% Uncertainty in Y-direction for disparity vector
-dispfield.Unwx=Unwx;
-dispfield.Unwy=Unwy;
+dispfield.Unwx=dispuncfield.Unwx;
+dispfield.Unwy=dispuncfield.Unwy;
 
 %% Get Uncertainty in calibration coefficients and the world coordinates xyz 
 %% using uncertainty propagation through Triangulation (Both bias and random uncertainty)
 %Get dewarped x and y coordinate grid on the overlapping camera domain
-[~,dewarp_grid,~]=imagedewarp_alone(caljob,'Willert',planarjob,[1024 1024]);
-xgrid1=dewarp_grid.xgrid;
-ygrid1=dewarp_grid.ygrid;
+%[~,dewarp_grid,~]=imagedewarp_alone(caljob,'Willert',planarjob,[1024 1024]);
+xgrid=dewarp_grid.xgrid;
+ygrid=dewarp_grid.ygrid;
 
 %Get z projected locations based on both mean and random uncertainties
 %evaluated with ensemble processing
-[xg,yg,Uncalcoeff,Ux,Uy,Uz,~,~]=stereo_uncertainty_in_xyz_calcoeff(caljob,dispfield,xgrid1,ygrid1);
+[xg,yg,Uncalcoeff,Ux,Uy,Uz,~,~]=stereo_uncertainty_in_xyz_calcoeff(caljob,dispfield,xgrid,ygrid);
 
 zg=zeros(size(xg));
 
