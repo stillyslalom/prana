@@ -60,6 +60,11 @@ if str2double(verstr(1:4))<2009
     errordlg('Prana requires Matlab R2009 or later.', 'prana')
 end
 
+if ~isempty(varargin) && strcmpi(varargin(1),'selfcal')
+    disp('Calling selfcal version')
+end
+
+
 try
     %JJC 2011-12-22:
     % this can cause problems if defaultsettings.mat exists, but is from a previous version
@@ -141,10 +146,15 @@ handles.data.outdirec=pwd;
 
 try
     windowdiagram=imread(fullfile(pranadir(1:end-8),'documentation','windowdiagram.tif'),'tif');
+    windowdiagram = double(windowdiagram);
+    windowdiagram = (windowdiagram(1:3:end,:,:)+windowdiagram(2:3:end,:,:)+windowdiagram(3:3:end,:,:))/3;
+    windowdiagram = uint8((windowdiagram(:,1:3:end,:)+windowdiagram(:,2:3:end,:)+windowdiagram(:,3:3:end,:))/3);
 catch
     windowdiagram=zeros(564,531);
 end
-set(gca,'children',imshow(windowdiagram));
+% set(gca,'children',imshow(windowdiagram));
+idx_windowdiagram = find(strcmpi(get(handles.gridsetuppanel.Children,'type'),'axes'),1,'last');
+set(handles.gridsetuppanel.Children(idx_windowdiagram),'children',imshow(windowdiagram));
 axis off;
 
 % the following commented lines were the original commands used by the
@@ -2177,12 +2187,9 @@ end
 % --- Uncertainty Estimation Check Box ---
 function uncertaintycheckbox_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    eval(['handles.data.PIV' handles.data.cpass '.uncertaintyestimate = num2str(get(hObject,''Value''));'])
+	eval(['handles.data.PIV' handles.data.cpass '.uncertaintyestimate = num2str(get(hObject,''Value''));'])
     handles=set_PIVcontrols(handles);
-    if hObject.Value==1
-        guidata(hObject,handles)
-    end
-%         handles.
+    guidata(hObject,handles)
 end
 
 % --- PPR Uncertainty Estimation Check Box ---
@@ -2191,18 +2198,29 @@ function ppruncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.ppruncertainty = get(hObject,''Value'');'])
     guidata(hObject,handles)
-else
-    hObject.Value=0;
-    guidata(hObject,handles)
 end
 
 % --- MI Uncertainty Estimation Check Box ---
 function miuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1 
+%     %can't disable MI if MC is on
+%     if handles.mcuncertainty.Value == 0
+%         %MC is off, so switch MI to match the checkbox
+%         eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
+%     else
+%         %MC is on, so reset MI to on and save to data.PIV
+%         hObject.Value = 1;
+%         eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = 1;'])
+%     end
+    
     eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
-    guidata(hObject,handles)
-else
-    hObject.Value=0;
+    if hObject.Value == 0
+        %need to force MC off if MI is turned off, but don't have to
+        %turn it on if MI gets turned on
+        eval(['handles.data.PIV' handles.data.cpass '.mcuncertainty = get(hObject,''Value'');'])
+        %and turn off checkbox
+        handles.mcuncertainty.Value = 0;
+    end
     guidata(hObject,handles)
 end
 
@@ -2211,18 +2229,19 @@ function imuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.imuncertainty = get(hObject,''Value'');'])
     guidata(hObject,handles)
-else
-    hObject.Value=0;
-    guidata(hObject,handles)
 end
 
 % --- MC Uncertainty Estimation Check Box ---
 function mcuncertainty_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0 && get(handles.uncertaintycheckbox,'Value')==1
     eval(['handles.data.PIV' handles.data.cpass '.mcuncertainty = get(hObject,''Value'');'])
-    guidata(hObject,handles)
-else
-    hObject.Value=0;
+    if hObject.Value == 1
+        %need to force miuncertainty on for mc calculation, but don't have to
+        %turn it off if mc gets turned off
+        eval(['handles.data.PIV' handles.data.cpass '.miuncertainty = get(hObject,''Value'');'])
+        %and turn on checkbox
+        handles.miuncertainty.Value = 1;
+    end
     guidata(hObject,handles)
 end
 
@@ -3210,11 +3229,15 @@ handles.data.cpass=num2str(N);
 
 if str2double(A.uncertaintyestimate)==0
     set(handles.uncertaintycheckbox,'Value',0);
-    set(handles.ppruncertainty,'Value',0);
-    set(handles.miuncertainty,'Value',0);
-    set(handles.imuncertainty,'Value',0);
-    set(handles.mcuncertainty,'Value',0);
+    set(handles.ppruncertainty,'Enable','off');
+    set(handles.miuncertainty,'Enable','off');
+    set(handles.imuncertainty,'Enable','off');
+    set(handles.mcuncertainty,'Enable','off');
 else
+    set(handles.ppruncertainty,'Enable','on');
+    set(handles.miuncertainty,'Enable','on');
+    set(handles.imuncertainty,'Enable','on');
+    set(handles.mcuncertainty,'Enable','on');
 %     keyboard;
     set(handles.uncertaintycheckbox,'Value', str2double(A.uncertaintyestimate));
     if ischar(A.ppruncertainty)
@@ -5826,6 +5849,14 @@ else
         end
     end
     
+    %check if we want to build the feature-limited selfcal version of prana
+    if ~isempty(varargin) && strcmpi(varargin(1),'selfcal')
+        gui_selfcal = 1;
+    else
+        gui_selfcal = 0;
+    end
+
+    
     % Open fig file with stored settings.  Note: This executes all component
     % specific CreateFunctions with an empty HANDLES structure.
 
@@ -5837,7 +5868,7 @@ else
     % only used by actxproxy at this time.   
     setappdata(0,genvarname(['OpenGuiWhenRunning_', gui_State.gui_Name]),1);
     if gui_Exported
-        gui_hFigure = feval(gui_State.gui_LayoutFcn, gui_SingletonOpt);
+        gui_hFigure = feval(gui_State.gui_LayoutFcn, gui_SingletonOpt, gui_selfcal);
 
         % make figure invisible here so that the visibility of figure is
         % consistent in OpeningFcn in the exported GUI case
