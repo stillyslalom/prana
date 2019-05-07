@@ -115,6 +115,7 @@ allX2data(:,2)  = rA1-allX2data(:,2)+0.5;
 
 modeltype   = caljob.modeltype;
 optionsls   = caljob.optionsls;
+optionsls   = optimset(optionsls,'Algorithm','levenberg-marquardt');  %force L-M algorithm (default is trust-region-reflective)
 
 caljob.allx1data=allx1data;
 caljob.allx2data=allx2data;

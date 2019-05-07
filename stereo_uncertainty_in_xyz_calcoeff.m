@@ -32,6 +32,7 @@ allX2data=caldata.allX2data;
 
 method=caldata.modeltype;
 optionsls=caldata.optionsls;
+optionsls= optimset(optionsls,'Algorithm','levenberg-marquardt');  %force L-M algorithm (default is trust-region-reflective)
 
 %polynomial fitting coefficients
 aXcam1=caldata.aXcam1;

@@ -59,6 +59,8 @@ allX2data=caldata.allX2data;
 
 method=caldata.modeltype;
 optionsls=caldata.optionsls;
+optionslsnl= optimset(optionsls,'Algorithm','levenberg-marquardt');  %force L-M algorithm (default is trust-region-reflective)
+
 
 %polynomial fitting coefficients?
 aXcam1=caldata.aXcam1;
@@ -279,7 +281,7 @@ caldatamod.allx1data=ztrans1';
 caldatamod.allx2data=ztrans2'; %outputs the modified planes
 %calculate new polynomial transform coefficients
 [~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
-    caldatamod.allx2data,allX1data,allX2data,method,optionsls);
+    caldatamod.allx2data,allX1data,allX2data,method,optionslsnl);
 
 %Move displaced vector points in world space to corrected location
 lg = length(xgrid(:));
@@ -484,7 +486,7 @@ caldatamod.allx1data=ztrans1r';
 caldatamod.allx2data=ztrans2r'; %outputs the modified planes
 %calculate new polynomial transform coefficients
 [~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
-    caldatamod.allx2data,allX1data,allX2data,method,optionsls);
+    caldatamod.allx2data,allX1data,allX2data,method,optionslsnl);
 caldatamod.aXcam1=aXcam1;
 caldatamod.aYcam1=aYcam1;
 caldatamod.aXcam2=aXcam2;
