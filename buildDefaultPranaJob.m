@@ -30,7 +30,7 @@ function [defaultdata] = buildDefaultPranaJob()
 %     You should have received a copy of the GNU General Public License
 %     along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-defaultdata.clientversion='2.6.0';
+defaultdata.clientversion='2.7.0';
 %defaultdata.version='2.0'; %gets set below in call to pranaPIVcode('version')
 if ispc
     defaultdata.imdirec='C:\';
@@ -113,6 +113,7 @@ defaultdata.PIV0.BWO='0,0';
 defaultdata.PIV0.corr='RPC';
 defaultdata.PIV0.RPCd='2.8,2.8';
 defaultdata.PIV0.frac_filt='1';
+defaultdata.PIV0.grid_angle='0,90';
 defaultdata.PIV0.zeromean='1';
 defaultdata.PIV0.peaklocator='1';
 defaultdata.PIV0.velsmooth='0';
