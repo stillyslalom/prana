@@ -13,73 +13,164 @@ Un_dFdx3=zeros(r,c,4);
 [~,~,dFdx1(:,:,1:2),dFdx2(:,:,1:2),dFdx3(:,:,1:2)]=calculate_stereo_angle(calmat(:,1:2),xg,yg,zg,modeltype);
 [~,~,dFdx1(:,:,3:4),dFdx2(:,:,3:4),dFdx3(:,:,3:4)]=calculate_stereo_angle(calmat(:,3:4),xg,yg,zg,modeltype);
 
+
 for gg=1:4
-    %{
-    a=calmat(:,gg);
-    %        Uc=uncoeff(:,gg);
+    if modeltype==2
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using 1st order z
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        a=calmat(:,gg); %original mapping function coefficients
+        %{    
+        % Mapping function gradient
+        dFdx1(:,:,gg) = a(2) + 2*a(5)*xg + a(6)*yg + a(8)*zg + 3*a(10)*xg.^2 + ...
+            2*a(11)*xg.*yg + a(12)*yg.^2 + 2*a(14)*xg.*zg + a(15)*yg.*zg;
+        
+        dFdx2(:,:,gg) = a(3) + a(6)*xg + 2*a(7)*yg + a(9)*zg + a(11)*xg.^2 + ...
+            2*a(12)*xg.*yg + 3*a(13)*yg.^2 + a(15)*xg.*zg + 2*a(16)*yg.*zg;
+        
+        dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + a(14)*xg.^2 + a(15)*xg.*yg + a(16)*yg.^2;
+        %}
+
+        % Second order derivative
+        cfxx=2*a(5) +6*a(10)*xg + 2*a(11)*yg + 2*a(14)*zg;
+        cfxy=a(6) + 2*a(11)*xg +  2*a(12)*yg + a(15)*zg;
+        cfxz=a(8)+ 2*a(14)*xg + a(15)*yg;
     
-    % Mapping function gradient
-    dFdx1(:,:,gg) = a(2) + 2*a(5)*xg + a(6)*yg + a(8)*zg + 3*a(11)*xg.^2 + 2*a(12)*xg.*yg + ...
-        a(13)*yg.^2 + 2*a(15)*xg.*zg + a(16)*yg.*zg + a(18)*zg.^2;
+        cfyx=a(6) + 2*a(11)*xg +  2*a(12)*yg + a(15)*zg;
+        cfyy=2*a(7) +2*a(12)*xg + 6*a(13)*yg +  2*a(16)*zg;
+        cfyz= a(9)+ a(15)*xg + 2*a(16)*yg;
     
-    dFdx2(:,:,gg) = a(3) + a(6)*xg + 2*a(7)*yg + a(9)*zg + a(12)*xg.^2 + 2*a(13)*xg.*yg + ...
-        3*a(14)*yg.^2 + a(16)*xg.*zg + 2*a(17)*yg.*zg + a(19)*zg.^2;
+        cfzx=a(8)+ 2*a(14)*xg + a(15)*yg;
+        cfzy=a(9)+ a(15)*xg + 2*a(16)*yg;
+        cfzz=0*zg;
+        
+        
+        % Uncertainty due to cal coefficients
+        a=Uncalcoeff(:,gg); % Uncertainty in mapping function coefficients
+        
+        T2dFdx1=sqrt((a(2)).^2 + (2*a(5)*xg).^2 + (a(6)*yg).^2 + (a(8)*zg).^2 + (3*a(10)*xg.^2).^2 + ...
+            (2*a(11)*xg.*yg).^2 + (a(12)*yg.^2).^2 + (2*a(14)*xg.*zg).^2 + (a(15)*yg.*zg).^2);
     
-    dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + 2*a(10)*zg + a(15)*xg.^2 + a(16)*xg.*yg + ...
-        a(17)*yg.^2 + 2*a(18)*xg.*zg + 2*a(19)*yg.*zg;
-    %}
+        T2dFdx2=sqrt((a(3)).^2 + (a(6)*xg).^2 + (2*a(7)*yg).^2 + (a(9)*zg).^2 + (a(11)*xg.^2).^2 + ...
+            (2*a(12)*xg.*yg).^2 + (3*a(13)*yg.^2).^2 + (a(15)*xg.*zg).^2 + (2*a(16)*yg.*zg).^2);
     
-    % Second order derivative
-    cfxx=2*a(5) +6*a(11)*xg + 2*a(12)*yg + 2*a(15)*zg ;
-    cfxy=a(6) + 2*a(12)*xg +  2*a(13)*yg + a(16)*zg ;
-    cfxz=a(8)+ 2*a(15)*xg + a(16)*yg + 2*a(18)*zg;
+        T2dFdx3=sqrt((a(4)).^2 + (a(8)*xg).^2 + (a(9)*yg).^2 + (a(14)*xg.^2).^2 + ...
+            (a(15)*xg.*yg).^2 + (a(16)*yg.^2).^2);
+        
+    elseif modeltype==2
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using 2nd order z
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        a=calmat(:,gg);
+        %        Uc=uncoeff(:,gg);
     
-    cfyx=a(6) + 2*a(12)*xg +  2*a(13)*yg + a(16)*zg ;
-    cfyy=2*a(7) +2*a(13)*xg + 6*a(14)*yg +  2*a(17)*zg;
-    cfyz= a(9)+ a(16)*xg + 2*a(17)*yg + 2*a(19)*zg;
+        %{    
+        % Mapping function gradient
+        dFdx1(:,:,gg) = a(2) + 2*a(5)*xg + a(6)*yg + a(8)*zg + 3*a(11)*xg.^2 + 2*a(12)*xg.*yg + ...
+            a(13)*yg.^2 + 2*a(15)*xg.*zg + a(16)*yg.*zg + a(18)*zg.^2;
     
-    cfzx=a(8)+ 2*a(15)*xg + a(16)*yg + 2*a(18)*zg;
-    cfzy=a(9)+ a(16)*xg + 2*a(17)*yg + 2*a(19)*zg;
-    cfzz=2*a(10)+ 2*a(18)*xg + 2*a(19)*yg;
+        dFdx2(:,:,gg) = a(3) + a(6)*xg + 2*a(7)*yg + a(9)*zg + a(12)*xg.^2 + 2*a(13)*xg.*yg + ...
+            3*a(14)*yg.^2 + a(16)*xg.*zg + 2*a(17)*yg.*zg + a(19)*zg.^2;
+    
+        dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + 2*a(10)*zg + a(15)*xg.^2 + a(16)*xg.*yg + ...
+            a(17)*yg.^2 + 2*a(18)*xg.*zg + 2*a(19)*yg.*zg;
+        %}
+    
+        % Second order derivative
+        cfxx=2*a(5) +6*a(11)*xg + 2*a(12)*yg + 2*a(15)*zg ;
+        cfxy=a(6) + 2*a(12)*xg +  2*a(13)*yg + a(16)*zg ;
+        cfxz=a(8)+ 2*a(15)*xg + a(16)*yg + 2*a(18)*zg;
+    
+        cfyx=a(6) + 2*a(12)*xg +  2*a(13)*yg + a(16)*zg ;
+        cfyy=2*a(7) +2*a(13)*xg + 6*a(14)*yg +  2*a(17)*zg;
+        cfyz= a(9)+ a(16)*xg + 2*a(17)*yg + 2*a(19)*zg;
+    
+        cfzx=a(8)+ 2*a(15)*xg + a(16)*yg + 2*a(18)*zg;
+        cfzy=a(9)+ a(16)*xg + 2*a(17)*yg + 2*a(19)*zg;
+        cfzz=2*a(10)+ 2*a(18)*xg + 2*a(19)*yg;
+    
+        % Uncertainty due to cal coefficients
+        a=Uncalcoeff(:,gg); % Uncertainty in mapping function coefficients
+        
+        T2dFdx1=sqrt(a(2).^2 + (2*a(5)).^2.*xg.^2 + a(6).^2*yg.^2 + a(8).^2*zg.^2 +...
+            (3*a(11)).^2*xg.^4 + (2*a(12)).^2*xg.^2.*yg.^2 + a(13).^2*yg.^4 + ...
+            (2*a(15)).^2*xg.^2.*zg.^2 + a(16).^2*yg.^2.*zg.^2 + a(18).^2*zg.^4);
+    
+        T2dFdx2=sqrt(a(3).^2 + a(6).^2*xg.^2 + (2*a(7)).^2*yg.^2 + a(9).^2*zg.^2 +...
+            a(12).^2*xg.^4 + (2*a(13)).^2*xg.^2.*yg.^2 + (3*a(14)).^2*yg.^4 + ...
+            a(16).^2*xg.^2.*zg.^2 + (2*a(17)).^2*yg.^2.*zg.^2 + a(19).^2*zg.^4);
+    
+        T2dFdx3=sqrt(a(4).^2 + a(8).^2*xg.^2 + a(9).^2*yg.^2 + (2*a(10)).^2*zg.^2 +...
+            a(15).^2*xg.^4 + a(16).^2*xg.^2.*yg.^2 + a(17).^2*yg.^4 + ...
+            (2*a(18)).^2*xg.^2.*zg.^2 + (2*a(19)).^2*yg.^2.*zg.^2);
+    elseif modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        a=calmat(:,gg); %original mapping function coefficients
+        %{
+        dFdx1(:,:,gg) = a(2) + 2*a(5)*xg + a(6)*yg + a(8)*zg + 3*a(10)*xg.^2 + ...
+            2*a(11)*xg.*yg + a(12)*yg.^2 + 2*a(14)*xg.*zg + a(15)*yg.*zg + ...
+            2*a(17)*xg.*yg.*zg + a(18)*yg.^2.*zg + 3*a(19)*xg.^2.*zg;
+
+        dFdx2(:,:,gg) = a(3) + a(6)*xg + 2*a(7)*yg + a(9)*zg + a(11)*xg.^2 + ...
+            2*a(12)*xg.*yg + 3*a(13)*yg.^2 + a(15)*xg.*zg + 2*a(16)*yg.*zg + ...
+            a(17)*xg.^2.*zg + 2*a(18)*xg.*yg.*zg + 3*a(20)*yg.^2.*zg;
+
+        dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + a(14)*xg.^2 + a(15)*xg.*yg + a(16)*yg.^2 + ...
+            a(17)*xg.^2.*yg + a(18)*xg.*yg.^2 + a(19)*xg.^3 + a(20)*yg.^3;
+        %}
+        
+        % Second order derivative (wrong)
+        cfxx=2*a(5) + 6*a(10)*xg + 2*a(11)*yg + 2*a(14)*zg + 2*a(17)*yg.*zg + 6*a(19)*xg.*zg;
+        cfxy=a(6) + 2*a(11)*xg + 2*a(12)*yg + a(15)*zg + 2*a(17)*xg.*zg + 2*a(18)*yg.*zg;
+        cfxz=a(8) + 2*a(14)*xg + a(15)*yg + 2*a(17)*xg.*yg + a(18)*yg.^2 + 3*a(19)*xg.^2;
+
+        cfyx=a(6) + 2*a(11)*xg + 2*a(12)*yg + a(15)*zg + 2*a(17)*xg.*zg + 2*a(18)*yg.*zg;
+        cfyy=2*a(7) + 2*a(12)*xg + 6*a(13)*yg + 2*a(16)*zg + 2*a(18)*xg.*zg + 6*a(20)*yg.*zg;
+        cfyz=a(9) + a(15)*xg + 2*a(16)*yg + a(17)*xg.^2 + 2*a(18)*xg.*yg + 3*a(20)*yg.^2;
+
+        cfzx=a(8) + 2*a(14)*xg + a(15)*yg + 2*a(17)*xg.*yg + a(18)*yg.^2 + 3*a(19)*xg.^2;
+        cfzy=a(9) + a(15)*xg + 2*a(16)*yg + a(17)*xg.^2 + 2*a(18)*xg.*yg + 3*a(20)*yg.^2;
+        cfzz=0*zg;
+        
+        % Uncertainty due to cal coefficients
+        a=Uncalcoeff(:,gg); % Uncertainty in mapping function coefficients
+        
+        T2dFdx1=sqrt((a(2)).^2 + (2*a(5)*xg).^2 + (a(6)*yg).^2 + (a(8)*zg).^2 + (3*a(10)*xg.^2).^2 + ...
+            (2*a(11)*xg.*yg).^2 + (a(12)*yg.^2).^2 + (2*a(14)*xg.*zg).^2 + (a(15)*yg.*zg).^2 + ...
+            (2*a(17)*xg.*yg.*zg).^2 + (a(18)*yg.^2.*zg).^2 + (3*a(19)*xg.^2.*zg).^2);
+    
+        T2dFdx2=sqrt((a(3)).^2 + (a(6)*xg).^2 + (2*a(7)*yg).^2 + (a(9)*zg).^2 + (a(11)*xg.^2).^2 + ...
+            (2*a(12)*xg.*yg).^2 + (3*a(13)*yg.^2).^2 + (a(15)*xg.*zg).^2 + (2*a(16)*yg.*zg).^2 + ...
+            (a(17)*xg.^2.*zg).^2 + (2*a(18)*xg.*yg.*zg).^2 + (3*a(20)*yg.^2.*zg).^2);
+    
+        T2dFdx3=sqrt((a(4)).^2 + (a(8)*xg).^2 + (a(9)*yg).^2 + (a(14)*xg.^2).^2 + (a(15)*xg.*yg).^2 + (a(16)*yg.^2).^2 + ...
+            (a(17)*xg.^2.*yg).^2 + (a(18)*xg.*yg.^2).^2 + (a(19)*xg.^3).^2 + (a(20)*yg.^3).^2);
+    end
     
     %Uncertainty due to Ux, Uy and Uz
     T1dFdx1=sqrt((cfxx.^2).*(unwx.^2)+(cfxy.^2).*(unwy.^2)+(cfxz.^2).*(unwz.^2));
     T1dFdx2=sqrt((cfyx.^2).*(unwx.^2)+(cfyy.^2).*(unwy.^2)+(cfyz.^2).*(unwz.^2));
     T1dFdx3=sqrt((cfzx.^2).*(unwx.^2)+(cfzy.^2).*(unwy.^2)+(cfzz.^2).*(unwz.^2));
     
-    
-    % Uncertainty due to cal coefficients
-    
-    a=Uncalcoeff(:,gg); % Uncertainty in mapping function coefficients
-        
-    T2dFdx1=sqrt(a(2).^2 + (2*a(5)).^2.*xg.^2 + a(6).^2*yg.^2 + a(8).^2*zg.^2 +...
-        (3*a(11)).^2*xg.^4 + (2*a(12)).^2*xg.^2.*yg.^2 + a(13).^2*yg.^4 + ...
-        (2*a(15)).^2*xg.^2.*zg.^2 + a(16).^2*yg.^2.*zg.^2 + a(18).^2*zg.^4);
-    
-    T2dFdx2=sqrt(a(3).^2 + a(6).^2*xg.^2 + (2*a(7)).^2*yg.^2 + a(9).^2*zg.^2 +...
-        a(12).^2*xg.^4 + (2*a(13)).^2*xg.^2.*yg.^2 + (3*a(14)).^2*yg.^4 + ...
-        a(16).^2*xg.^2.*zg.^2 + (2*a(17)).^2*yg.^2.*zg.^2 + a(19).^2*zg.^4);
-    
-    T2dFdx3=sqrt(a(4).^2 + a(8).^2*xg.^2 + a(9).^2*yg.^2 + (2*a(10)).^2*zg.^2 +...
-        a(15).^2*xg.^4 + a(16).^2*xg.^2.*yg.^2 + a(17).^2*yg.^4 + ...
-        (2*a(18)).^2*xg.^2.*zg.^2 + (2*a(19)).^2*yg.^2.*zg.^2);
-    
     %Total Uncertainty in mapping function gradient
     Un_dFdx1(:,:,gg)=sqrt(T1dFdx1.^2+T2dFdx1.^2);
     Un_dFdx2(:,:,gg)=sqrt(T1dFdx2.^2+T2dFdx2.^2);
     Un_dFdx3(:,:,gg)=sqrt(T1dFdx3.^2+T2dFdx3.^2);
 
-    % Uncertainty in mapping function gradient due to Ux,Uy,Uz
-%     Un_dFdx1(:,:,gg)=sqrt(T1dFdx1.^2);
-%     Un_dFdx2(:,:,gg)=sqrt(T1dFdx2.^2);
-%     Un_dFdx3(:,:,gg)=sqrt(T1dFdx3.^2);
+    % % Uncertainty in mapping function gradient due to Ux,Uy,Uz
+    % Un_dFdx1(:,:,gg)=sqrt(T1dFdx1.^2);
+    % Un_dFdx2(:,:,gg)=sqrt(T1dFdx2.^2);
+    % Un_dFdx3(:,:,gg)=sqrt(T1dFdx3.^2);
     
-    % Uncertainty in mapping function gradient due to Uai's
-%     Un_dFdx1(:,:,gg)=sqrt(T2dFdx1.^2);
-%     Un_dFdx2(:,:,gg)=sqrt(T2dFdx2.^2);
-%     Un_dFdx3(:,:,gg)=sqrt(T2dFdx3.^2);
+    % % Uncertainty in mapping function gradient due to Uai's
+    % Un_dFdx1(:,:,gg)=sqrt(T2dFdx1.^2);
+    % Un_dFdx2(:,:,gg)=sqrt(T2dFdx2.^2);
+    % Un_dFdx3(:,:,gg)=sqrt(T2dFdx3.^2);
     
 end
+
 % keyboard;
 
 %ANGLE CALCULATION
