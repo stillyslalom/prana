@@ -1,4 +1,4 @@
-function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tanbeta2]=stereo_angle_uncertainty(caljob,planarjob,dispfield,dispuncfield,dewarpgrid)
+function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tanbeta2]=stereo_angle_uncertainty(caljob,dewarp_grid,dispfield,dispuncfield)
 %This function calculates the stereo angle uncertainties 
 %
 % Input Variables
@@ -33,7 +33,7 @@ function [Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tan
 %dispuncfield = A structure that contains the calculated uncertainty in each disparity vector.  
 %Uncertainties are stored in fields as Unwx and Unwy with same scaling as dispfield
 %
-%dewarpgrid = a structure with the dewarped x and y coordinate grid on the overlapping camera domain.
+%dewarp_grid = a structure with the dewarped x and y coordinate grid on the overlapping camera domain.
 %The fields are xgrid and ygrid.
 
 % Output Variables
