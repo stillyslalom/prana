@@ -272,14 +272,18 @@ for j=1:nof
     Y= y/1000;
     Z= zeros(size(x));
     
-    %foutname=regexp(flname1{j},'pass','split');
+    % %foutname=regexp(flname1{j},'pass','split');
+    % foutname=foutnamelist{j}{2};
+    % stereo_output=fullfile(diroutlist.willert3cfields,['piv_2d3c_cam',num2str(caldata.camnumber(1)),'cam',num2str(caldata.camnumber(2)),'_pass_',foutname]);
+
+    foutjob =foutnamelist{j}{1};
     foutname=foutnamelist{j}{2};
-    
-    stereo_output=fullfile(diroutlist.willert3cfields,['piv_2d3c_cam',num2str(caldata.camnumber(1)),'cam',num2str(caldata.camnumber(2)),'_pass_',foutname]);
+    foutfile=['piv_2d3c_',foutjob,'pass',foutname];
+    stereo_output=fullfile(diroutlist.willert3cfields,foutfile);
     
     save(stereo_output,'X','Y','Z','U','V','W');
     
-    fprintf(['stereo frame_pass_',foutname,'  done.\n']);
+    fprintf(['stereo ',foutfile,'  done.\n']);
     %keyboard;
     clear X Y Z U V W;
 end
