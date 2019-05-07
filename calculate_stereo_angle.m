@@ -26,7 +26,7 @@ dFdx3=zeros(rows,cols,2);
 
 if modeltype==1
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    % Mapping the camera coord. to the World Coord. using 1sr order z
+    % Mapping the camera coord. to the World Coord. using 1st order z
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     for gg=1:2
         a=aall(:,gg);
@@ -54,6 +54,7 @@ elseif modeltype==2
         dFdx3(:,:,gg) = a(4) + a(8)*xg + a(9)*yg + 2*a(10)*zg + a(15)*xg.^2 + a(16)*xg.*yg + ...
             a(17)*yg.^2 + 2*a(18)*xg.*zg + 2*a(19)*yg.*zg;
     end
+elseif modeltype==4
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
