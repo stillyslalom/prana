@@ -1,4 +1,4 @@
-function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitcameramodels(allx1data,...
+function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage, Uncal] = fitcameramodels(allx1data,...
     allx2data,allX1data,allX2data,modeltype,optionsls)
 % function [a_cam1 a_cam2 aXcam1 aYcam1 aXcam2 aYcam2 convergemessage]=fitcameramodels(allx1data,...
 %     allx2data,allX1data,allX2data,modeltype,optionsls)
@@ -104,11 +104,16 @@ function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fit
 %  allX2data(:,2)=(allX2data(:,2)-mean(allX2data(:,2)))./(1*max(abs(allX2data(:,2))));
 
  
+if nargout < 8
+   UNCMOD = 0;
+else
+   UNCMOD = 1;
+end
  
- 
-optionsls=optimset('MaxIter',30000,'MaxFunEvals',30000,'TolX',1e-11,'TolFun',1e-7,...
-        'LargeScale','off','Display','off','Algorithm','levenberg-marquardt');
-
+if nargin<6
+    optionsls=optimset('MaxIter',30000,'MaxFunEvals',30000,'TolX',1e-11,'TolFun',1e-7,...
+            'LargeScale','off','Display','off','Algorithm','levenberg-marquardt');
+end
 
 % Matlab perfers 'Levenberg-Marquardt' over 'levenbergmarquardt' but the
 % optimset function hasn't been updated yet.  This should be fixed in later
@@ -148,6 +153,8 @@ end
 printformat='%5.4f';        % for converge box message
 printformat1='%7.6f';
 
+% lsqnonlin outputs
+% x,resnorm,residual,exitflag,output,lambda,jacobian
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % If either of the cubic XY camera models are going to be used (or DaVis).  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -162,7 +169,7 @@ if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     alldata.allxdata=allx1data;      
     alldata.allXdata=allX1data(:,1);
     % fit X for cam. 1 to all x data for cam1
-    [aXcam1,resnorm,f_resid,exitflag]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
+    [aXcam1,resnorm,f_resid,exitflag,~,~,jac1]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
         a,[],[],optionsls);   %#ok<ASGLU>
     rmsX1=sqrt(mean((f_resid).^2));%sqrt(resnorm/length(alldata.allXdata));
     corrcoef=1-sqrt(mean((f_resid./alldata.allXdata).^2));
@@ -178,7 +185,7 @@ if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     alldata.allxdata=allx1data;      
     alldata.allXdata=allX1data(:,2);
     % fit Y for cam. 1 to all x data for cam1
-    [aYcam1,resnorm,f_resid,exitflag]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
+    [aYcam1,resnorm,f_resid,exitflag,~,~,jac2]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
         a,[],[],optionsls);     %#ok<ASGLU>
     rmsY1=sqrt(mean((f_resid).^2));%sqrt(resnorm/length(alldata.allXdata));
     corrcoef=1-sqrt(mean((f_resid./alldata.allXdata).^2));
@@ -194,7 +201,7 @@ if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     alldata.allxdata=allx2data;      
     alldata.allXdata=allX2data(:,1);
     % fit X for cam. 2 to all x data for cam1
-    [aXcam2,resnorm,f_resid,exitflag]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
+    [aXcam2,resnorm,f_resid,exitflag,~,~,jac3]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
         a,[],[],optionsls);   %#ok<ASGLU>  
     rmsX2=sqrt(mean((f_resid).^2));%sqrt(resnorm/length(alldata.allXdata));
     corrcoef=1-sqrt(mean((f_resid./alldata.allXdata).^2));
@@ -210,7 +217,7 @@ if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     alldata.allxdata=allx2data;      
     alldata.allXdata=allX2data(:,2);
     % fit Y for cam. 2 to all x data for cam1
-    [aYcam2,resnorm,f_resid,exitflag]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
+    [aYcam2,resnorm,f_resid,exitflag,~,~,jac4]=lsqnonlin(@(a) poly_3xy_123z(a,alldata),...
         a,[],[],optionsls);   %#ok<ASGLU>  
     rmsY2=sqrt(mean((f_resid).^2));%sqrt(resnorm/length(alldata.allXdata));
     corrcoef=1-sqrt(mean((f_resid./alldata.allXdata).^2));
@@ -316,7 +323,7 @@ else
         
         a=ones(1,4);
         alldata.allxdata=allx1data;
-        [rows ~]=size(alldata.allxdata);
+        [rows,~]=size(alldata.allxdata);
         alldata.allXdata=ones(rows,1);
         % fit X for cam. 1 to all z data for cam1
         [a3_cam1,resnorm3,f_resid3,exitflag]=lsqnonlin(@(a) campinholemod_LSfun(a,alldata),...
@@ -346,7 +353,7 @@ else
         
         a=ones(1,4);
         alldata.allxdata=allx2data;
-        [rows ~]=size(alldata.allxdata);
+        [rows,~]=size(alldata.allxdata);
         alldata.allXdata=ones(rows,1);
         % fit X for cam. 2 to all z data for cam1
         [a3_cam2,resnorm3,f_resid3,exitflag]=lsqnonlin(@(a) campinholemod_LSfun(a,alldata),...
@@ -368,37 +375,38 @@ end
 convergemessage={msgX1;msgY1;msgX2;msgY2};
 [aXcam1 aYcam1 aXcam2 aYcam2];
 
-% Approximate camera angles calculated for each calibration Mapping
-% function using the ratio of the coefficients.
-if modeltype==1 || modeltype==2 || modeltype==4
+if ~UNCMOD
+    % Approximate camera angles calculated for each calibration Mapping
+    % function using the ratio of the coefficients.
+    if modeltype==1 || modeltype==2 || modeltype==4
     
-    %[aXcam1 aYcam1]
-    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
-    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
-    beta1 =atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
-    beta2 =atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
-    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+        %[aXcam1 aYcam1]
+        alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+        alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+        beta1 =atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+        beta2 =atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+        fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
     
-elseif modeltype==3
-    %[a_cam1]
-    aXcam1=[a_cam1(1,4) a_cam1(1,1) a_cam1(1,2) a_cam1(1,3)]';
-    aYcam1=[a_cam1(1,8) a_cam1(1,5) a_cam1(1,6) a_cam1(1,7)]';
-    aXcam2=[a_cam2(1,4) a_cam2(1,1) a_cam2(1,2) a_cam2(1,3)]';
-    aYcam2=[a_cam2(1,8) a_cam2(1,5) a_cam2(1,6) a_cam2(1,7)]';
-    %[aXcam1 aYcam1]
+    elseif modeltype==3
+        %[a_cam1]
+        aXcam1=[a_cam1(1,4) a_cam1(1,1) a_cam1(1,2) a_cam1(1,3)]';
+        aYcam1=[a_cam1(1,8) a_cam1(1,5) a_cam1(1,6) a_cam1(1,7)]';
+        aXcam2=[a_cam2(1,4) a_cam2(1,1) a_cam2(1,2) a_cam2(1,3)]';
+        aYcam2=[a_cam2(1,8) a_cam2(1,5) a_cam2(1,6) a_cam2(1,7)]';
+        %[aXcam1 aYcam1]
     
-    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
-    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
-    beta1=atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
-    beta2=atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
-    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+        alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+        alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+        beta1=atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+        beta2=atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+        fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
     
-    aXcam1=[];aYcam1=[];
+        aXcam1=[];aYcam1=[];
     
-else
-    warning('Unknown modeltype in fitcameramodels.m')
+    else
+        warning('Unknown modeltype in fitcameramodels.m')
+    end
 end
-
 
 % save('aXcam1.mat','aXcam1');
 % save('aXcam2.mat','aXcam2');
@@ -406,4 +414,34 @@ end
 % save('aYcam2.mat','aYcam2');
 % Turning the warning back on
 %warning('on','optim:lsqncommon:AlgorithmConflict')
+
+if UNCMOD
+    % Calculating fit coefficient Uncertainty
+    Np=size(allx1data,1);
+    Na=length(aXcam1);
+    Ndof=Np-Na;
+
+    SigresX1=sqrt(Np/Ndof)*rmsX1*eye(Na);
+    SigresY1=sqrt(Np/Ndof)*rmsY1*eye(Na);
+    SigresX2=sqrt(Np/Ndof)*rmsX2*eye(Na);
+    SigresY2=sqrt(Np/Ndof)*rmsY2*eye(Na);
+
+    % Cov1=inv(jac1'*jac1);
+    % Cov2=inv(jac2'*jac2);
+    % Cov3=inv(jac3'*jac3);
+    % Cov4=inv(jac4'*jac4);
+
+    Cov1=(jac1'*jac1);
+    Cov2=(jac2'*jac2);
+    Cov3=(jac3'*jac3);
+    Cov4=(jac4'*jac4);
+
+    Uxcam1=sqrt(diag(Cov1\SigresX1.^2));
+    Uycam1=sqrt(diag(Cov2\SigresY1.^2));
+    Uxcam2=sqrt(diag(Cov3\SigresX2.^2));
+    Uycam2=sqrt(diag(Cov4\SigresY2.^2));
+
+    Uncal=[Uxcam1 Uycam1 Uxcam2 Uycam2];
+else
+    Uncal=0;
 end

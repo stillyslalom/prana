@@ -2,13 +2,14 @@ function [xg,yg,Uncal,Ux,Uy,Uz,z1grid,caldatamod]=stereo_uncertainty_in_xyz_calc
 % This function calculates the uncertainty in the world coordinates and the
 % uncertainty in the calibration coefficients using uncertainty propagation
 % through triangulation
+%
 % Inputs
 %caldata= calibration job containing calibration information and mapping
 %functions
 %dispfield= disparity vector field U,V based pixel based coordinate grid
 %X,Y
 %xgrid1,ygrid1= dewarped common grid in physical units
-
+%
 %Outputs
 %xg,yg are coordinate grids in physical units where disparity vector is
 %evaluated
@@ -277,7 +278,7 @@ caldatamod.allx2datap=ztrans2p';
 caldatamod.allx1datan=ztrans1n';
 caldatamod.allx2datan=ztrans2n';
 %calculate new polynomial transform coefficients
-[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,Uncalfit1]=fitmodels_mod(caldatamod.allx1data,...
+[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,Uncalfit1]=fitcameramodels(caldatamod.allx1data,...
     caldatamod.allx2data,allX1data,allX2data,method,optionsls);
 caldatamod.aXcam1=TaXcam1;
 caldatamod.aYcam1=TaYcam1;
@@ -291,14 +292,14 @@ caldatamod.aYcam2=TaYcam2;
 
 
 
-[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,~]=fitmodels_mod(caldatamod.allx1datap,...
+[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,~]=fitcameramodels(caldatamod.allx1datap,...
     caldatamod.allx2datap,allX1data,allX2data,method,optionsls);
 caldatamod.aXcam1p=TaXcam1;
 caldatamod.aYcam1p=TaYcam1;
 caldatamod.aXcam2p=TaXcam2;
 caldatamod.aYcam2p=TaYcam2;
 
-[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,~]=fitmodels_mod(caldatamod.allx1datan,...
+[~,~,TaXcam1, TaYcam1, TaXcam2, TaYcam2,~,~]=fitcameramodels(caldatamod.allx1datan,...
     caldatamod.allx2datan,allX1data,allX2data,method,optionsls);
 caldatamod.aXcam1n=TaXcam1;
 caldatamod.aYcam1n=TaYcam1;
@@ -489,7 +490,8 @@ z1grid=zgrid;
 
 end
 %}
-
+%%
+%{
 function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage,Uncal] = fitmodels_mod(allx1data,...
     allx2data,allX1data,allX2data,modeltype,~)
 % function [a_cam1 a_cam2 aXcam1 aYcam1 aXcam2 aYcam2 convergemessage]=fitcameramodels(allx1data,...
@@ -921,3 +923,4 @@ Uycam2=sqrt(diag(Cov4\SigresY2.^2));
 Uncal=[Uxcam1 Uycam1 Uxcam2 Uycam2];
 
 end
+%}
