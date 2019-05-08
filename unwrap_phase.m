@@ -1,31 +1,65 @@
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Fast unwrapping 2D phase image using the algorithm given in:                 %
-%     M. A. Herráez, D. R. Burton, M. J. Lalor, and M. A. Gdeisat,             %
-%     "Fast two-dimensional phase-unwrapping algorithm based on sorting by     %
-%     reliability following a noncontinuous path", Applied Optics, Vol. 41,    %
-%     Issue 35, pp. 7437-7444 (2002).                                          %
-%                                                                              %
-% If using this code for publication, please kindly cite the following:        %
-% * M. A. Herraez, D. R. Burton, M. J. Lalor, and M. A. Gdeisat, "Fast         %
-%   two-dimensional phase-unwrapping algorithm based on sorting by reliability %
-%   following a noncontinuous path", Applied Optics, Vol. 41, Issue 35,        %
-%   pp. 7437-7444 (2002).                                                      %
-% * M. F. Kasim, "Fast 2D phase unwrapping implementation in MATLAB",          %
-%   https://github.com/mfkasim91/unwrap_phase/ (2017).                         %
-%                                                                              %
-% Input:                                                                       %
-% * img: The wrapped phase image either from -pi to pi or from 0 to 2*pi.      %
-%        If there are unwanted regions, it should be filled with NaNs.         %
-%                                                                              %
-% Output:                                                                      %
-% * res_img: The unwrapped phase with arbitrary offset.                        %
-%                                                                              %
-% Author:                                                                      %
-%     Muhammad F. Kasim, University of Oxford (2017)                           %
-%     Email: firman.kasim@gmail.com                                            %
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 function res_img = unwrap_phase(img)
+%unwrap_phase Unwrap 2D phase image using the method of Herráez et al.
+% res_img = unwrap_phase(img)
+%
+% Fast unwrapping 2D phase image using the algorithm given in:                 
+%     M. A. Herráez, D. R. Burton, M. J. Lalor, and M. A. Gdeisat,             
+%     "Fast two-dimensional phase-unwrapping algorithm based on sorting by     
+%     reliability following a noncontinuous path", Applied Optics, Vol. 41,    
+%     Issue 35, pp. 7437-7444 (2002).                                          
+%                                                                              
+% If using this code for publication, please kindly cite the following:        
+% * M. A. Herraez, D. R. Burton, M. J. Lalor, and M. A. Gdeisat, "Fast         
+%   two-dimensional phase-unwrapping algorithm based on sorting by reliability 
+%   following a noncontinuous path", Applied Optics, Vol. 41, Issue 35,        
+%   pp. 7437-7444 (2002).                                                      
+% * M. F. Kasim, "Fast 2D phase unwrapping implementation in MATLAB",          
+%   https://github.com/mfkasim91/unwrap_phase/ (2017).                         
+%                                                                              
+% Input:                                                                       
+% * img: The wrapped phase image either from -pi to pi or from 0 to 2*pi.      
+%        If there are unwanted regions, it should be filled with NaNs.        
+%                                                                              
+% Output:                                                                      
+% * res_img: The unwrapped phase with arbitrary offset.                        
+%                                                                              
+% Author:                                                                      
+%     Muhammad F. Kasim, University of Oxford (2017)                           
+%     Email: firman.kasim@gmail.com     
+
+% Downloaded from github by JJC on 5/8/19
+% commit a13e2dc5267947e5a25d2e5b3cfc208f1c6c9296
+
+% BSD 3-Clause License
+% 
+% Copyright (c) 2019, Muhammad Firmansyah Kasim
+% All rights reserved.
+% 
+% Redistribution and use in source and binary forms, with or without
+% modification, are permitted provided that the following conditions are met:
+% 
+% 1. Redistributions of source code must retain the above copyright notice, this
+%    list of conditions and the following disclaimer.
+% 
+% 2. Redistributions in binary form must reproduce the above copyright notice,
+%    this list of conditions and the following disclaimer in the documentation
+%    and/or other materials provided with the distribution.
+% 
+% 3. Neither the name of the copyright holder nor the names of its
+%    contributors may be used to endorse or promote products derived from
+%    this software without specific prior written permission.
+% 
+% THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+% AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+% IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+% DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+% FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+% DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+% SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+% CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+% OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+% OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
     [Ny, Nx] = size(img);
 
     % get the reliability
