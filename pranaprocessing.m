@@ -219,7 +219,7 @@ for e=1:P
     Corr{e} = A.corr; %(SCC,RPC,DRPC,GCC,FWC,SPC,DCC,hsDCC,WFT-LSA)
     D(e,:) = [str2double(A.RPCd(1:(strfind(A.RPCd,',')-1))) str2double(A.RPCd((strfind(A.RPCd,',')+1):end))];
     frac_filt(e) = str2double(A.frac_filt);
-    grid_angle(e) = [str2double(A.grid_angle(1:(strfind(A.grid_angle,',')-1))) str2double(A.grid_angle((strfind(A.grid_angle,',')+1):end))];
+    grid_angle(e,:) = [str2double(A.grid_angle(1:(strfind(A.grid_angle,',')-1))) str2double(A.grid_angle((strfind(A.grid_angle,',')+1):end))];
     Zeromean(e) = str2double(A.zeromean);
     Peaklocator(e) = str2double(A.peaklocator);
     Velsmoothswitch(e) = str2double(A.velsmooth);
@@ -880,7 +880,7 @@ switch char(M)
                             uncertainty2D.Nump  = zeros(length(Xc),1);
                         end
                     elseif strcmpi(Corr{e},'WFTLSA') %then was SPC
-                        [Xc,Yc,Uc,Vc]=PIVgridproc(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e,:),grid_angle(e,:),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                        [Xc,Yc,Uc,Vc]=PIVgridproc(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),grid_angle(e,:),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Cc = zeros(size(Xc),imClass);
                         Dc = zeros(size(Xc),imClass);
                         %no uncertainty methods defined for grid images

@@ -57,7 +57,7 @@ Y=Y(:);
 Nx = window(1);
 Ny = window(2);
 
-if nargin <=9
+if nargin <=12
     Uin = zeros(length(X),1,imClass);
     Vin = zeros(length(X),1,imClass);
 end
@@ -102,11 +102,11 @@ P2_X=P2_X+l*2*pi;
 P2_Y=P2_Y+k*2*pi;
 
 %apply the second order discrete window offset
-x1 = X(n) - floor(round(Uin(n))/2);
-x2 = X(n) +  ceil(round(Uin(n))/2);
+x1 = X - floor(round(Uin)/2);
+x2 = X +  ceil(round(Uin)/2);
 
-y1 = Y(n) - floor(round(Vin(n))/2);
-y2 = Y(n) +  ceil(round(Vin(n))/2);
+y1 = Y - floor(round(Vin)/2);
+y2 = Y +  ceil(round(Vin)/2);
 
 %clamp x1,x2,y1,y2 to limits of original image
 x1(x1<1)    = 1;
@@ -134,9 +134,14 @@ V = -( P2_Y-P1_Y ) * gridSpacing(2)/(2*pi);
 U=-(U*cosd(theta(1)) + V*cosd(theta(2))); 
 V=-(U*sind(theta(1)) + V*sind(theta(2))); 
 
-%add DWO to estimation
-U = round(Uin)+U;
-V = round(Vin)+V;
+% % For a uniform field, the phase change with position is already included, 
+% % so just shifting sampling positions doesn't remove the relative offset 
+% % from the displacement estimate.  Therefore, we don't need to add Uin,Vin
+% % back into the final result
+% %
+% %add DWO to estimation
+% U = round(Uin)+U;
+% V = round(Vin)+V;
 
 end
 
