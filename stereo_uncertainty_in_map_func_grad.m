@@ -121,7 +121,7 @@ for gg=1:4
             a(17)*xg.^2.*yg + a(18)*xg.*yg.^2 + a(19)*xg.^3 + a(20)*yg.^3;
         %}
         
-        % Second order derivative (wrong)
+        % Second order derivative 
         cfxx=2*a(5) + 6*a(10)*xg + 2*a(11)*yg + 2*a(14)*zg + 2*a(17)*yg.*zg + 6*a(19)*xg.*zg;
         cfxy=a(6) + 2*a(11)*xg + 2*a(12)*yg + a(15)*zg + 2*a(17)*xg.*zg + 2*a(18)*yg.*zg;
         cfxz=a(8) + 2*a(14)*xg + a(15)*yg + 2*a(17)*xg.*yg + a(18)*yg.^2 + 3*a(19)*xg.^2;

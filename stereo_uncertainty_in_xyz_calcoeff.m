@@ -50,6 +50,10 @@ Y3=dispfield.Y + 0.5;% correlation X and Y grid points (in pixels)
 Unwx=dispfield.Unwx;% Random uncertainty using image matching in pixels
 Unwy=dispfield.Unwy;
 
+%remove NaN and Inf
+Unwx(~isfinite(Unwx))=0;
+Unwy(~isfinite(Unwy))=0;
+
 %calculating the length of the common grid in the object plane on which the
 %images are dewarped
 xmin=min(min(xgrid1));

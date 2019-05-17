@@ -1,8 +1,7 @@
 function [Un_u,Un_v,Un_w,JU,JV,JW]=stereo_uncertainty_propagation(Unu1,Unv1,Unu2,Unv2,U1,V1,U2,V2,W,Un_alpha1,Un_alpha2,Un_beta1,Un_beta2,tanalpha1,tanalpha2,tanbeta1,tanbeta2,mx,my)
 % This function calculates the uncertainty in the stereo velocity
 % components
-
-
+%
 % Input Variables
 % Nx X Ny grid point array on which individual camera velocity fields are
 % evaluated
@@ -11,23 +10,23 @@ function [Un_u,Un_v,Un_w,JU,JV,JW]=stereo_uncertainty_propagation(Unu1,Unv1,Unu2
 % Unu2= Nx X Ny array of uncertainty in camera 2 U component of velocity using any planar uncertainty method like IM or CS
 % Unv2= Nx X Ny array of uncertainty in camera 2 V component of velocity using any planar uncertainty method like IM or CS
 % W= Out of plane velocity velocity component
-
+%
 % tanalpha1,tanalpha2,tanbeta1,tanbeta2= tangent of the stereo angles alpha
 % (angle in x-z plane) and beta (angle in y-z plane) for camera 1 and 2
-
+%
 % Un_alpha1,Un_alpha2,Un_beta1,Un_beta2= the uncertainty in stereo
 % angles alpha1, beta1, alpha2, beta2
-
-%The angles and its uncertainties are calculated previously in
-%stereo_angle_uncertainty.m
-
+%
+% The angles and its uncertainties are calculated previously in
+% stereo_angle_uncertainty.m
+%
 % mx,my = magnifications in mm(or physical unit)/pixel for the dewarped
 % common grid in x and y direction respectively.
-
+%
 % Output Variables
 % Un_u,Un_v and Un_w are the uncertainties in the stereo velocity
 % components u, v and w.
-
+%
 %JU, JV and JW = Sensitivity coefficients of U, V and W uncertainty propagation equation as given in Table 1 of the stereo uncertainty paper   
 
 %written by Sayantan Bhattacharya on 01/12/2016
