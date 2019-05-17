@@ -71,15 +71,15 @@ else
     Sx=Nx;
 end
 
-%window masking filter
-sfilt1 = buildWindow([res(1, 1) res(1, 2)], [Sx Sy]);
-sfilt2 = buildWindow([res(2, 1) res(2, 2)], [Sx Sy]);
+% %window masking filter
+% sfilt1 = buildWindow([res(1, 1) res(1, 2)], [Sx Sy]);
+% sfilt2 = buildWindow([res(2, 1) res(2, 2)], [Sx Sy]);
 
-% %for consistency, should replace buildWindow with a call to windowmask
-% sfilt1 = windowmask([Sx Sy],[res(1, 1) res(1, 2)]);
-% sfilt2 = windowmask([Sx Sy],[res(2, 1) res(2, 2)]);
-% sfilt1 = sfilt1/sum(sfilt1(:))
-% sfilt2 = sfilt2/sum(sfilt2(:))
+%for consistency, should replace buildWindow with a call to windowmask
+sfilt1 = windowmask([Sx Sy],[res(1, 1) res(1, 2)]);
+sfilt2 = windowmask([Sx Sy],[res(2, 1) res(2, 2)]);
+sfilt1 = sfilt1/sum(sfilt1(:));
+sfilt2 = sfilt2/sum(sfilt2(:));
 
 [pX1, pY1] = phImage(im1, sfilt1, gridSpacing, theta);
 [pX2, pY2] = phImage(im2, sfilt2, gridSpacing, theta);
