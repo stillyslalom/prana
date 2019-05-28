@@ -2013,7 +2013,7 @@ end
 % --- Correlation Type Drop-Down Menu ---
 function correlationtype_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC','WFTLSA'};
+    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC','WFTLSA','RPCG'};
     eval(['handles.data.PIV' handles.data.cpass '.corr = ctype{get(hObject,''Value'')};'])
     N=handles.data.cpass;
     A=eval(['handles.data.PIV' num2str(N)]);
@@ -3302,6 +3302,10 @@ elseif strcmpi(A.corr,'HSSCC');
     corr = 8;
 elseif strcmpi(A.corr,'WFTLSA');
     corr = 9;
+elseif strcmpi(A.corr,'RPCG');
+    corr = 10;
+else
+    error('Error updating GUI settings: Unknown correlation type')
 end
 
 set(handles.windowres,'string',A.winres);
