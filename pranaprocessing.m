@@ -879,7 +879,7 @@ switch char(M)
                             uncertainty2D.Uimy  = zeros(length(Xc),1);
                             uncertainty2D.Nump  = zeros(length(Xc),1);
                         end
-                    elseif strcmpi(Corr{e},'WFTLSA') %then was SPC
+                    elseif strcmpi(Corr{e},'WFTLSA') %then was WFT-LSA
                         [Xc,Yc,Uc,Vc]=PIVgridproc(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),grid_angle(e,:),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Cc = zeros(size(Xc),imClass);
                         Dc = zeros(size(Xc),imClass);
@@ -1012,7 +1012,7 @@ switch char(M)
                         U=zeros(size(X),imClass);V=zeros(size(X),imClass);C=zeros(size(X),imClass);Di=zeros(size(X),imClass);
                         U(Eval>=0)=Uc;V(Eval>=0)=Vc;
                     end
-                else %Corr was SPC or WFTLSA
+                elseif strcmpi(Corr{e},'SPC')
                     U=zeros(size(X),imClass);V=zeros(size(X),imClass);
                     U(Eval>=0)=Uc;V(Eval>=0)=Vc;
                     if Peakswitch(e)
@@ -1025,6 +1025,15 @@ switch char(M)
                         C=zeros(size(X),imClass);
                         Di=zeros(size(X),imClass);
                     end
+                elseif strcmpi(Corr{e},'WFTLSA') %then was WFT-LSA
+                    U=zeros(size(X),imClass);
+                    V=zeros(size(X),imClass);
+                    C=zeros(size(X),imClass);
+                    Di=zeros(size(X,1),imClass);
+                    U(Eval>=0)  = Uc;
+                    V(Eval>=0)  = Vc;
+                    C(Eval>=0)  = Cc;
+                    Di(Eval>=0) = Dc;
                 end
                 
                 corrtime(e,defloop)=toc(t1);
@@ -1221,13 +1230,13 @@ switch char(M)
                     
                     %SPC only returns 1 peak right now?
                     if Peakswitch(e)
-                        if PeakVel(e) && ~strcmpi(Corr{e},'SPC')
+                        if PeakVel(e) && ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                             U=[Uval,U(:,1:PeakNum(e))];
                             V=[Vval,V(:,1:PeakNum(e))];
                         else
                             U=Uval; V=Vval;
                         end
-                        if PeakMag(e)
+                        if PeakMag(e) && ~strcmpi(Corr{e},'WFTLSA')
                             C=[Cval,C(:,1:PeakNum(e))];
                             Di=[Dval,Di(:,1:PeakNum(e))];
                         else
