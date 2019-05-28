@@ -125,14 +125,14 @@ P1_Y=P1_Y(sub2ind(L,y1,x1));
 P2_X=P2_X(sub2ind(L,y2,x2));
 P2_Y=P2_Y(sub2ind(L,y2,x2));
 
-U = -( P2_X-P1_X ) * gridSpacing(1)/(2*pi);
-V = -( P2_Y-P1_Y ) * gridSpacing(2)/(2*pi);
+U0 = -( P2_X-P1_X ) * gridSpacing(1)/(2*pi);
+V0 = -( P2_Y-P1_Y ) * gridSpacing(2)/(2*pi);
 
 % [ UX0, UY0, ~, ~, ~, ~ ] = calcPhaseDisp( gridSpacing, P1_X, P1_Y, P2_X, P2_Y, 1, Uin, Vin);
 
 %correct grid angle skew
-U=-(U*cosd(theta(1)) + V*cosd(theta(2))); 
-V=-(U*sind(theta(1)) + V*sind(theta(2))); 
+U= (U0*cosd(theta(1)) + V0*cosd(theta(2))); 
+V= (U0*sind(theta(1)) + V0*sind(theta(2))); 
 
 % % For a uniform field, the phase change with position is already included, 
 % % so just shifting sampling positions doesn't remove the relative offset 
@@ -150,8 +150,8 @@ function [phaseX, phaseY] = phImage(I, g, p, theta)
 [X, Y] = meshgrid(0:size(I,2)-1, 0:size(I,1)-1);
 
 % Transform coordinates
-X1 = X*cosd(theta(1)) - Y*sind(theta(1));
-Y1 = X*cosd(theta(2)) - Y*sind(theta(2)); 
+X1 = X*cosd(theta(1)) + Y*sind(theta(1));
+Y1 = X*cosd(theta(2)) + Y*sind(theta(2)); 
 X=X1; Y=Y1;
 
 fc1 = 2*pi/p(1); 
