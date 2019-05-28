@@ -216,7 +216,7 @@ for e=1:P
     Wsize(e,:) = [str2double(A.winsize(1:(strfind(A.winsize,',')-1))) str2double(A.winsize((strfind(A.winsize,',')+1):end))];
     Gres(e,:) = [str2double(A.gridres(1:(strfind(A.gridres,',')-1))) str2double(A.gridres((strfind(A.gridres,',')+1):end))];
     Gbuf(e,:) = [str2double(A.gridbuf(1:(strfind(A.gridbuf,',')-1))) str2double(A.gridbuf((strfind(A.gridbuf,',')+1):end))];
-    Corr{e} = A.corr; %(SCC,RPC,DRPC,GCC,FWC,SPC,DCC,hsDCC,WFT-LSA)
+    Corr{e} = A.corr; %(SCC,RPC,DRPC,GCC,FWC,SPC,DCC,hsDCC,WFT-LSA,RPCG)
     D(e,:) = [str2double(A.RPCd(1:(strfind(A.RPCd,',')-1))) str2double(A.RPCd((strfind(A.RPCd,',')+1):end))];
     frac_filt(e) = str2double(A.frac_filt);
     grid_angle(e,:) = [str2double(A.grid_angle(1:(strfind(A.grid_angle,',')-1))) str2double(A.grid_angle((strfind(A.grid_angle,',')+1):end))];
@@ -279,7 +279,7 @@ for e=1:P
     else
         uncertainty(e).Uncswitch=A.uncertaintyestimate;
     end
-    if uncertainty(e).Uncswitch && ~any(strcmpi(Corr{e},{'SPC','WFT-LSA'}))
+    if uncertainty(e).Uncswitch && ~any(strcmpi(Corr{e},{'SPC','WFT-LSA','RPCG'}))
         if ischar(A.ppruncertainty)
             uncertainty(e).ppruncertainty=str2double(A.ppruncertainty);
         else
@@ -702,8 +702,12 @@ switch char(M)
                     %if Corr(e)<4
                     if ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                         % keyboard;
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
-                        
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,grid_angle(e,:),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        end
                     elseif strcmpi(Corr{e},'SPC') %then was SPC
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
                         %Sam deleted the Cc output from PIVPhaseCorr - why?  because we don't use it? But it's needed for Dc in next line?
@@ -864,8 +868,13 @@ switch char(M)
                             keyboard
                         end
                         %Uc, Vc will include Ub, Vb from previous pass or BWO 
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
-                            
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,grid_angle(e,:),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        end
+                        
                     elseif strcmpi(Corr{e},'SPC')
                         %Uc, Vc will include Ub, Vb from previous pass or BWO 
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
@@ -1926,12 +1935,22 @@ switch char(M)
                     if strcmpi(M,'EDeform') && (e~=1 || defloop ~=1 || VelInputFile)
                         %previous pass velocities have been encoded in
                         %deformed images, so don't  pass a shift
-                        [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),grid_angle(e,:),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        end
                     else
                         %Not using deform, or either first pass or defloop 
                         %iteration with no velocity input file, so use raw 
                         %images with previous shift (Ub,Vb)
-                        [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),grid_angle(e,:),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        end
                     end
                     
                     if ~strcmpi(Corr{e},'SPC')   %SPC=4 %SCC or RPC
