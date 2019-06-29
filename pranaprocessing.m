@@ -2346,28 +2346,55 @@ switch char(M)
                 Uimx = zeros(length(Xc),1);
                 Uimy = zeros(length(Xc),1);
                 Nump = zeros(length(Xc),1);
-                                
+                Uim_Bx = zeros(length(Xc),1);
+                Uim_Rx = zeros(length(Xc),1);
+                Uim_By = zeros(length(Xc),1);
+                Uim_Ry = zeros(length(Xc),1);
+                 
+                try
                 % Calcuate weighted mean and variance of disparity distribution for each interrogation region
                 for n=1:length(Xc)
                     NPeak = length(dispx{n});
                     
-                    mewx=(1/sum(cw{n}))*sum(cw{n}.*dispx{n});% Weighted mean
-                    sigx=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispx{n}-mewx).^2)));% Weighted std deviation
-                    deltax=sqrt(mewx^2 + (sigx/sqrt(NPeak))^2);% Uncertainty in x
+                    if NPeak~=0
+                    
+                        mewx=(1/sum(cw{n}))*sum(cw{n}.*dispx{n});% Weighted mean
+                        sigx=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispx{n}-mewx).^2)));% Weighted std deviation
+                        deltax=sqrt(mewx^2 + (sigx/sqrt(NPeak))^2);% Uncertainty in x
 
-                    mewy=(1/sum(cw{n}))*sum(cw{n}.*dispy{n});% Weighted mean
-                    sigy=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispy{n}-mewy).^2)));% Weighted std deviation
-                    deltay=sqrt(mewy^2 + (sigy/sqrt(NPeak))^2);% Uncertainty in y
+                        mewy=(1/sum(cw{n}))*sum(cw{n}.*dispy{n});% Weighted mean
+                        sigy=sqrt((1/sum(cw{n})).*sum(cw{n}.*((dispy{n}-mewy).^2)));% Weighted std deviation
+                        deltay=sqrt(mewy^2 + (sigy/sqrt(NPeak))^2);% Uncertainty in y
+                    else
+                        mewx=0;
+                        sigx=0;
+                        deltax=0;
+                        
+                        mewy=0;
+                        sigy=0;
+                        deltay=0;
+                    end
                     
                     Uimx(n)=deltax;
                     Uimy(n)=deltay;
                     Nump(n)=NPeak;
+                    Uim_Bx(n)=mewx;
+                    Uim_Rx(n)=sigx;
+                    Uim_By(n)=mewy;
+                    Uim_Ry(n)=sigy;
+                end
+                catch err
+                    disp(err)
+                    keyboard
                 end
 
                 uncertainty2D.Uimx=Uimx;
                 uncertainty2D.Uimy=Uimy;
                 uncertainty2D.Nump=Nump;
-
+                uncertainty2D.Uim_Bx=Uim_Bx;
+                uncertainty2D.Uim_Rx=Uim_Rx;
+                uncertainty2D.Uim_By=Uim_By;
+                uncertainty2D.Uim_Ry=Uim_Ry;
             else
                 %leave empty for efficiency
                 % uncertainty2D.Uimx=zeros(size(Xc));
@@ -2496,6 +2523,22 @@ switch char(M)
                 temp_unc = uncertainty2D.Nump;
                 uncertainty2D.Nump         = zeros([S(1),S(2)],imClass);
                 uncertainty2D.Nump(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uim_Bx;
+                uncertainty2D.Uim_Bx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uim_Bx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uim_Rx;
+                uncertainty2D.Uim_Rx         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uim_Rx(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uim_By;
+                uncertainty2D.Uim_By         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uim_By(Eval(:,1)>=0)= temp_unc;
+                
+                temp_unc = uncertainty2D.Uim_Ry;
+                uncertainty2D.Uim_Ry         = zeros([S(1),S(2)],imClass);
+                uncertainty2D.Uim_Ry(Eval(:,1)>=0)= temp_unc;
                 
                 clear temp_unc
             end
