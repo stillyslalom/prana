@@ -86,8 +86,8 @@ if PROCESS_FILES
     % %in, or any number of other problems.  Let's use the list of what
     % %should have been processed instead
     %
-    dir_struct1= dir(fullfile(diroutlist.willert2dcam1,['*.' 'mat']));
-    flname1={dir_struct1.name}';
+    % dir_struct1= dir(fullfile(diroutlist.willert2dcam1,['*.' 'mat']));
+    % flname1={dir_struct1.name}';
     % dir_struct2= dir(fullfile(diroutlist.willert2dcam2,['*.' 'mat']));
     % flname2={dir_struct2.name}';
     % 
@@ -99,18 +99,18 @@ if PROCESS_FILES
     %build list of file numbers to process
     job1 = diroutlist.willertjob1;
     job2 = diroutlist.willertjob2;
-    flist1 = str2num(job1.imfstart) : str2num(job1.imfstep) : str2num(job1.imfend);
-    flist2 = str2num(job2.imfstart) : str2num(job2.imfstep) : str2num(job2.imfend);
+    flist1 = str2double(job1.imfstart) : str2double(job1.imfstep) : str2double(job1.imfend);
+    flist2 = str2double(job2.imfstart) : str2double(job2.imfstep) : str2double(job2.imfend);
     if any(flist1~=flist2)
         error('Planar jobs must process the same list of frames')
     end
-    if str2num(job1.passes) ~= str2num(job2.passes)
+    if str2double(job1.passes) ~= str2double(job2.passes)
         error('Planar jobs must process equal number of passes')
     end
     
     %allocate storage
     nof = length(flist1);
-    nop = str2num(job1.passes);
+    nop = str2double(job1.passes);
     flname1 = cell(nof,nop);
     flname2 = cell(nof,nop);
     
