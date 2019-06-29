@@ -1,4 +1,4 @@
-function [caldatamod]=selfcalibration_main(caldata,selfcaljob)
+function [caldatamod]=selfcalibration_main(caldata,selfcaljob,xingrid,yingrid,zingrid,SKIP_DEWARP)
 %THis function does self calibration and corrects for any disparity between
 %two camera images and the existing calibration
 %
@@ -74,11 +74,42 @@ aYcam2=caldata.aYcam2;
 
 %keyboard;
 
-
 % Doing dewarping and cross correlation to calculate the disparity map (Dux and Duy).
 %imagelist=selfcaljob;
-[outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,'Willert',selfcaljob);
-
+if nargin>=4
+    if nargin < 5
+        zingrid =zeros(size(xingrid));
+    end
+    
+    if ~SKIP_DEWARP
+        [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,'Willert',selfcaljob,[],xingrid,yingrid,zingrid);
+    else
+        dewarp_grid.xgrid = xingrid;
+        dewarp_grid.ygrid = yingrid;
+        % Xgrid1,Ygrid1,Xgrid2,Ygrid2 are not used here, so we could probably
+        % skip evaluating them
+        orderz=caldata.modeltype;
+        
+        [Xgrid1,Ygrid1]=poly_3xy_123z_fun(xingrid,yingrid,orderz,aXcam1,aYcam1,zingrid);
+        [Xgrid2,Ygrid2]=poly_3xy_123z_fun(xingrid,yingrid,orderz,aXcam2,aYcam2,zingrid);
+        
+        dewarp_grid.Xgrid1=Xgrid1;
+        dewarp_grid.Ygrid1=Ygrid1;
+        dewarp_grid.Xgrid2=Xgrid2;
+        dewarp_grid.Ygrid2=Ygrid2;
+        
+        dirsave=selfcaljob.outdirec;
+        dirout1=fullfile(dirsave,['Dewarped Images1',filesep]);
+        dirout2=fullfile(dirsave,['Dewarped Images2',filesep]);
+        
+        outputdirlist.dewarpdir1=dirout1;
+        outputdirlist.dewarpdir2=dirout2;
+        
+    end
+else
+    [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,'Willert',selfcaljob);
+end
+    
 %keyboard;
 
 %These are the dewarped image coordinates in physical space; one grid point
