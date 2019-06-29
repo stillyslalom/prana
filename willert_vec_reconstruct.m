@@ -1,4 +1,4 @@
-function willert_vec_reconstruct(diroutlist,caldata,dewarp_grid,scaling,pulsesep)
+function stereoveclist = willert_vec_reconstruct(diroutlist,caldata,dewarp_grid,scaling,pulsesep,planarveclist)
 % Performs geometric reconstruction on vector fields extracted using the
 % Willert method (1997).  Method has also been modified to include angle
 % calculations based on Scarano 2005 paper.
@@ -64,6 +64,11 @@ function willert_vec_reconstruct(diroutlist,caldata,dewarp_grid,scaling,pulsesep
 
 %keyboard;
 
+if nargin>5 && ~isempty(planarveclist)
+    PROCESS_FILES = 0;
+else
+    PROCESS_FILES = 1;
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Dimension units determined from code during de-warp processing %
@@ -76,26 +81,86 @@ xgridc=dewarp_grid.xgrid;
 ygridc=dewarp_grid.ygrid;
 %zgrid = zeros(size(xgrid));
 
-dir_struct1= dir(fullfile(diroutlist.willert2dcam1,['*.' 'mat']));
-flname1={dir_struct1.name}';
-dir_struct2= dir(fullfile(diroutlist.willert2dcam2,['*.' 'mat']));
-flname2={dir_struct2.name}';
-
-nof=length(flname1);
-
-% Finals will not ALWAYS have "pass" in the name.  This could be a problem.
-foutnamelist=regexp(flname1,'pass','split');
-
-% Predefining variables helps things run faster.
-vectorlist = cell(nof,1);
+if PROCESS_FILES
+    % %this is asking for trouble if processing was broken, extra files snuck
+    % %in, or any number of other problems.  Let's use the list of what
+    % %should have been processed instead
+    %
+    dir_struct1= dir(fullfile(diroutlist.willert2dcam1,['*.' 'mat']));
+    flname1={dir_struct1.name}';
+    % dir_struct2= dir(fullfile(diroutlist.willert2dcam2,['*.' 'mat']));
+    % flname2={dir_struct2.name}';
+    % 
+    % nof=length(flname1);
+    %
+    % % Finals will not ALWAYS have "pass" in the name.  This could be a problem.
+    % foutnamelist=regexp(flname1,'pass','split');
+    
+    %build list of file numbers to process
+    job1 = diroutlist.willertjob1;
+    job2 = diroutlist.willertjob2;
+    flist1 = str2num(job1.imfstart) : str2num(job1.imfstep) : str2num(job1.imfend);
+    flist2 = str2num(job2.imfstart) : str2num(job2.imfstep) : str2num(job2.imfend);
+    if any(flist1~=flist2)
+        error('Planar jobs must process the same list of frames')
+    end
+    if str2num(job1.passes) ~= str2num(job2.passes)
+        error('Planar jobs must process equal number of passes')
+    end
+    
+    %allocate storage
+    nof = length(flist1);
+    nop = str2num(job1.passes);
+    flname1 = cell(nof,nop);
+    flname2 = cell(nof,nop);
+    
+    %build list of filenames for cam1 and cam2
+    for p=1:nop
+        job1_PIV = eval(['job1.PIV',num2str(p)]);
+        job2_PIV = eval(['job2.PIV',num2str(p)]);
+        for j=1:nof
+            flname1{j,p} = [job1_PIV.outbase,num2str(flist1(j),['%0',job1.imzeros,'d']),'.mat'];
+            flname2{j,p} = [job2_PIV.outbase,num2str(flist2(j),['%0',job2.imzeros,'d']),'.mat'];
+        end
+    end
+    
+    % Predefining variables helps things run faster.
+    vectorlist = cell(nof,1);
+else
+    %vecdatalist should be vecdatalist{1:2}[1:nof] with structure fields
+    %corresponding to prana output (X,Y,U,V at least)
+    nof = length(planarveclist{1});
+    
+    % %fake a foutnamelist: 'vec_pass1_NNNNN.mat', where NNNNNN goes 1:nof
+    % foutnamelist = cell(nof,1);
+    % for j=1:nof
+    %     foutnamelist{j}{1} = 'vec_';
+    %     foutnamelist{j}{2} = ['1_',num2str(j),'.mat'];
+    % end
+    
+    stereodata.X = [];
+    stereodata.Y = [];
+    stereodata.Z = [];
+    stereodata.U = [];
+    stereodata.V = [];
+    stereodata.W = [];
+    stereoveclist = repmat(stereodata,[1,nof]);
+end
 
 %keyboard;
+for p=1:nop
 for j=1:nof
+   
+    if PROCESS_FILES
+        vectorlist{j}=[{fullfile(diroutlist.willert2dcam1,flname1{j,p})};{fullfile(diroutlist.willert2dcam2,flname2{j,p})}];
+        vecfr1 = load(vectorlist{j}{1});
+        vecfr2 = load(vectorlist{j}{2});
+    else
+        vecfr1 = planarveclist{1}(j);
+        vecfr2 = planarveclist{2}(j);
+    end
     
-    vectorlist{j}=[{fullfile(diroutlist.willert2dcam1,flname1{j})};{fullfile(diroutlist.willert2dcam2,flname2{j})}];
-    
-    vecfr1 = load(vectorlist{j}{1});
-    if j==1 || (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
+    if j==1 %|| (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
         %keyboard;
         % %this is the same error as in selfcalibration.m, fixed the same way        
         % X1 = xgridc(vecfr1.Y(:,1),vecfr1.X(1,:));
@@ -107,9 +172,8 @@ for j=1:nof
     u1 = (xscale*t)*vecfr1.U(:,:,1);
     v1 = (yscale*t)*vecfr1.V(:,:,1);
     clear vecfr1;
-    
-    vecfr2 = load(vectorlist{j}{2});
-    if j==1 || (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
+        
+    if j==1 %|| (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
         % X2 = xgridc(vecfr2.Y(:,1),vecfr2.X(1,:));
         % Y2 = ygridc(vecfr2.Y(:,1),vecfr2.X(1,:));
         X2 = xscale * (vecfr2.X+0.5 - 1) + min(xgridc(:));
@@ -120,7 +184,7 @@ for j=1:nof
     v2 = (yscale*t)*vecfr2.V(:,:,1);
     clear vecfr2;
     
-    if j==1 || (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
+    if j==1 %|| (j>1 && ~strcmp(foutnamelist{j}{2}(1),foutnamelist{j-1}{2}(1)))
         
         [rows,cols]=size(u1);
         
@@ -276,14 +340,24 @@ for j=1:nof
     % foutname=foutnamelist{j}{2};
     % stereo_output=fullfile(diroutlist.willert3cfields,['piv_2d3c_cam',num2str(caldata.camnumber(1)),'cam',num2str(caldata.camnumber(2)),'_pass_',foutname]);
 
-    foutjob =foutnamelist{j}{1};
-    foutname=foutnamelist{j}{2};
-    foutfile=['piv_2d3c_',foutjob,'pass',foutname];
-    stereo_output=fullfile(diroutlist.willert3cfields,foutfile);
-    
-    save(stereo_output,'X','Y','Z','U','V','W');
-    
+    % foutjob =foutnamelist{j}{1};
+    % foutname=foutnamelist{j}{2};
+    foutfile=['piv_2d3c_',flname1{j,p}];
+    if PROCESS_FILES
+        stereo_output=fullfile(diroutlist.willert3cfields,foutfile);
+        save(stereo_output,'X','Y','Z','U','V','W');
+    else
+        stereodata.X = X;
+        stereodata.Y = Y;
+        stereodata.Z = Z;
+        stereodata.U = U;
+        stereodata.V = V;
+        stereodata.W = W;
+        stereoveclist(j) = stereodata;
+    end
+
     fprintf(['stereo ',foutfile,'  done.\n']);
     %keyboard;
     clear X Y Z U V W;
+end
 end
