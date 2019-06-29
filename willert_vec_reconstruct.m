@@ -130,6 +130,7 @@ else
     %vecdatalist should be vecdatalist{1:2}[1:nof] with structure fields
     %corresponding to prana output (X,Y,U,V at least)
     nof = length(planarveclist{1});
+    nop = 1;
     
     % %fake a foutnamelist: 'vec_pass1_NNNNN.mat', where NNNNNN goes 1:nof
     % foutnamelist = cell(nof,1);
@@ -137,6 +138,14 @@ else
     %     foutnamelist{j}{1} = 'vec_';
     %     foutnamelist{j}{2} = ['1_',num2str(j),'.mat'];
     % end
+    
+    %fake a flname1: 'vec_pass1_NNNNN.mat', where NNNNNN goes 1:nof
+    %flname2 isn't needed
+    flname1 = cell(nof,nop);
+    p=1;
+    for j=1:nof
+        flname1{j,p} = ['vec_pass1_',num2str(j),'.mat'];
+    end
     
     stereodata.X = [];
     stereodata.Y = [];
