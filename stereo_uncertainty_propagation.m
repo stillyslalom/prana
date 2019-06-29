@@ -20,6 +20,11 @@ function [Un_u,Un_v,Un_w,JU,JV,JW]=stereo_uncertainty_propagation(Unu1,Unv1,Unu2
 % The angles and its uncertainties are calculated previously in
 % stereo_angle_uncertainty.m
 %
+% dispfield is a structure which contains the disparity field between
+% two cameras. The fields in the structure are U,V,X and Y corresponding to
+% a disparity vector map obtained using ensemble correlation of two camera
+% images at the same time instant.
+%
 % mx,my = magnifications in mm(or physical unit)/pixel for the dewarped
 % common grid in x and y direction respectively.
 %
@@ -27,7 +32,7 @@ function [Un_u,Un_v,Un_w,JU,JV,JW]=stereo_uncertainty_propagation(Unu1,Unv1,Unu2
 % Un_u,Un_v and Un_w are the uncertainties in the stereo velocity
 % components u, v and w.
 %
-%JU, JV and JW = Sensitivity coefficients of U, V and W uncertainty propagation equation as given in Table 1 of the stereo uncertainty paper   
+% JU, JV and JW = Sensitivity coefficients of U, V and W uncertainty propagation equation as given in Table 1 of the stereo uncertainty paper   
 
 %written by Sayantan Bhattacharya on 01/12/2016
 
