@@ -279,7 +279,29 @@ function helpmenu_about_Callback(hObject, eventdata, handles)
          'INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN ',...
          'CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ',...
          'ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE ',...
-         'POSSIBILITY OF SUCH DAMAGE.'],'',...
+         'POSSIBILITY OF SUCH DAMAGE.'],'','',...
+        ['Portions of this program are copyright Muhammad Firmansyah Kasim ',...
+         'under the following license:'],'',...
+        ['Redistribution and use in source and binary forms, with or without ',...
+         'modification, are permitted provided that the following conditions are met:'],...
+         '1. Redistributions of source code must retain the above copyright notice, ',...
+         '   this list of conditions and the following disclaimer.',...
+         '2. Redistributions in binary form must reproduce the above copyright ',...
+         '   notice, this list of conditions and the following disclaimer in the ',...
+         '   documentation and/or other materials provided with the distribution.',...
+         '3. Neither the name of the copyright holder nor the names of its',...
+         '   contributors may be used to endorse or promote products derived from',...
+         '   this software without specific prior written permission.','',...
+         ['THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" ',...
+         'AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE ',...
+         'IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE ',...
+         'DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE ',...
+         'FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL ',...
+         'DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR ',...
+         'SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER ',...
+         'CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, ',...
+         'OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE ',...
+         'OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. '],''...
         };
 
         txt = uicontrol('Parent',aboutdlg,...
@@ -293,6 +315,10 @@ function helpmenu_about_Callback(hObject, eventdata, handles)
                    'Position',[285 20 70 25],...
                    'String','Close',...
                    'Callback','delete(gcf)');
+
+    
+
+
 
 
 % --- Help Menu -> Getting Started ---
@@ -1987,7 +2013,7 @@ end
 % --- Correlation Type Drop-Down Menu ---
 function correlationtype_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC'};
+    ctype = {'SCC','RPC','DRPC','GCC','FWC','SPC','DCC','HSSCC','WFTLSA','RPCG'};
     eval(['handles.data.PIV' handles.data.cpass '.corr = ctype{get(hObject,''Value'')};'])
     N=handles.data.cpass;
     A=eval(['handles.data.PIV' num2str(N)]);
@@ -1997,8 +2023,14 @@ if str2double(handles.Njob)>0
         set(handles.rpcdiameter,'backgroundcolor',[1 1 1]);
     end
     if strcmpi(A.corr,'FWC')
-        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        if str2double(get(handles.frac_filter_weight,'String'))==0
+            set(handles.frac_filter_weight,'backgroundcolor',[1 0.5 0]);
+        else
+            set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        end
         set(handles.rpcdiameter,'backgroundcolor',0.5*[1 1 1]);
+    elseif strcmpi(A.corr,{'WFTLSA'})
+        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
     else
         set(handles.frac_filter_weight,'backgroundcolor',0.5*[1 1 1]);
     end
@@ -2013,9 +2045,9 @@ if str2double(handles.Njob)>0
         eval(['handles.data.PIV' handles.data.cpass '.winauto = num2str(get(handles.autowinsizecheckbox,''Value''));']);
         %Update "Actual Window Size" text box based on "Window Resolution"
         % Read the string in the window resolution textbox
-        A = get(handles.windowres,'String');
+        WR = get(handles.windowres,'String');
         % Parse string in window resolution textbox to determine the resolutions of each window
-        [wx1 wy1 wx2 wy2] = parseNum(A);
+        [wx1 wy1 wx2 wy2] = parseNum(WR);
         Rx = wx1 + wx2 - 1;
         Ry = wy1 + wy2 - 1;
         %update the text on the GUI
@@ -2026,6 +2058,20 @@ if str2double(handles.Njob)>0
     else
         set(handles.autowinsizecheckbox,'enable','on');
     end
+    if strcmpi(A.corr,{'WFTLSA'})
+        %Relabel "Particle Diameter" dialog box to "Grid Period"
+        set(handles.rpcdiameter_label,'String','Grid Period (pix)');
+
+        %Relabel "Fractional Filter Weight" dialog box to "Grid Angle"
+        set(handles.frac_filter_weight_label,'String','Grid Angle (deg)');
+    else
+        %Reset "Grid Period" dialog box label back to "Particle Diameter" 
+        set(handles.rpcdiameter_label,'String','Particle Diameter (pix)');
+        
+        %Reset "Grid Angle" dialog box label back to "Fractional Filter Weight" 
+        set(handles.frac_filter_weight_label,'String','Fractional Filter Weight (0-1)');
+    end
+    %
     set(handles.correlationtype,'backgroundcolor',[1 1 1]);
     handles=set_PIVcontrols(handles);
     guidata(hObject,handles)
@@ -2041,7 +2087,7 @@ if str2double(handles.Njob)>0
         
     % Parse the string to find the differnt RPC diameter for the X and Y
     % directions.
-    [RPCdx RPCdy] = parseNum(get(hObject,'string'));
+    [RPCdx, RPCdy] = parseNum(get(hObject,'string'));
     
     % Put the new values into the job file.
     eval(['handles.data.PIV' handles.data.cpass '.RPCd = [num2str(RPCdx) '','' num2str(RPCdy)];'])
@@ -2050,7 +2096,7 @@ if str2double(handles.Njob)>0
     handles=set_PIVcontrols(handles);
     
     guidata(hObject,handles)
-    if any(get(handles.correlationtype,'Value')==[2 5]) %need to check for RPC, SPC
+    if any(get(handles.correlationtype,'Value')==[2 6 9]) %need to check for RPC, SPC
         if RPCdx < 2 || RPCdy < 2%str2double(get(hObject,'String'))<2
             if RPCdx <= 0 || RPCdy <= 0%str2double(get(hObject,'String'))==0
                 set(hObject,'backgroundcolor','r');
@@ -2073,10 +2119,73 @@ end
 % --- Fractional Filter Text Box ---
 function frac_filter_weight_Callback(hObject, eventdata, handles)
 if str2double(handles.Njob)>0
-    eval(['handles.data.PIV' handles.data.cpass '.frac_filt = get(hObject,''String'');'])
+    
+    if get(handles.correlationtype,'Value')==9
+        %[GAx, GAy] = parseNum(get(hObject,'string'));
+        str = get(hObject,'string');
+        
+        if strcmp(str, '') || isempty(str)
+        %  Set numbers to default values
+            GAx = 0;
+            GAy = 90;
+        else
+            try
+                %  Read numerical values from string and ignore delimiters (, ; :)
+                nums = strread(str, '%f', -1, 'delimiter', ',;:');
+                GAx = nums(1);
+                if length(nums)<2
+                    GAy = GAx+90;
+                else
+                    GAy = nums(2);
+                end
+            catch
+                %  Set numbers to default values
+                GAx = 0;
+                GAy = 90;
+            end
+        end
+        
+        GAx = mod(GAx,360); GAy = mod(GAy,360);
+        eval(['handles.data.PIV' handles.data.cpass '.grid_angle = [num2str(GAx) '','' num2str(GAy)];'])
+    else
+        str = get(hObject,'string');
+        
+        if strcmp(str, '') || isempty(str)
+        %  Set numbers to default values
+            frac = 1;
+        else
+            try
+                [frac, GAy] = parseNum(str);
+                % if frac<0
+                %     frac=0;
+                % elseif frac>1
+                %     frac=1;
+                % end
+            catch
+                frac=1;
+            end
+        end
+        eval(['handles.data.PIV' handles.data.cpass '.frac_filt = num2str(frac);'])
+    end
+    
+    % Update the boxes in the GUI
+    handles=set_PIVcontrols(handles);
+
+    
+    %update color warnings for bad values
     guidata(hObject,handles)
-    if get(handles.correlationtype,'Value')==4
+    if get(handles.correlationtype,'Value')==5
         if str2double(get(hObject,'String'))==0
+            set(hObject,'backgroundcolor',[1 0.5 0]);
+        else
+            set(hObject,'backgroundcolor',[1 1 1]);
+        end
+    elseif get(handles.correlationtype,'Value')==9
+        %check angle between lines
+        DA = mod((GAx-GAy)+180,360)-180;
+        if abs(DA)<1
+            set(hObject,'backgroundcolor',[1 0 0]);
+        elseif abs(DA)<30
             set(hObject,'backgroundcolor',[1 0.5 0]);
         else
             set(hObject,'backgroundcolor',[1 1 1]);
@@ -2085,6 +2194,7 @@ if str2double(handles.Njob)>0
         set(hObject,'backgroundcolor',0.5*[1 1 1]);
     end
 end
+
 function frac_filter_weight_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
@@ -3190,7 +3300,14 @@ elseif strcmpi(A.corr,'DCC');
     corr = 7;
 elseif strcmpi(A.corr,'HSSCC');
     corr = 8;
+elseif strcmpi(A.corr,'WFTLSA');
+    corr = 9;
+elseif strcmpi(A.corr,'RPCG');
+    corr = 10;
+else
+    error('Error updating GUI settings: Unknown correlation type')
 end
+
 set(handles.windowres,'string',A.winres);
 set(handles.windowsize,'string',A.winsize);
 set(handles.autowinsizecheckbox,'Value',str2double(A.winauto));
@@ -3202,7 +3319,7 @@ set(handles.correlationtype,'Value',corr);
 set(handles.subpixelinterp,'Value',str2double(A.peaklocator));
 set(handles.zeromeancheckbox,'Value',str2double(A.zeromean));
 set(handles.rpcdiameter,'string',A.RPCd);
-set(handles.frac_filter_weight,'string',str2double(A.frac_filt));
+set(handles.frac_filter_weight,'string',A.frac_filt); %this may get overwritten below if coor==9
 set(handles.deform_min_iter,'string',str2double(A.deform_min));
 set(handles.deform_max_iter,'string',str2double(A.deform_max));
 set(handles.deform_conv,'string',str2double(A.deform_conv));
@@ -3385,8 +3502,10 @@ else
     set(handles.winoverlap,'backgroundcolor',0.5*[1 1 1]);
 end
 if any(get(handles.correlationtype,'Value')==[2 6]) %check diameter if RPC, SPC
-    if str2double(get(handles.rpcdiameter,'String'))<2
-        if str2double(get(handles.rpcdiameter,'String'))==0
+    [RPCdx, RPCdy] = parseNum(get(handles.rpcdiameter,'String'));
+
+    if any([RPCdx, RPCdy]<2)
+        if any([RPCdx, RPCdy]==0)
             set(handles.rpcdiameter,'backgroundcolor','r');
         else
             set(handles.rpcdiameter,'backgroundcolor',[1 0.5 0]);
@@ -3397,12 +3516,51 @@ if any(get(handles.correlationtype,'Value')==[2 6]) %check diameter if RPC, SPC
     set(handles.frac_filter_weight,'backgroundcolor',0.5.*[1 1 1]);
 else
     if get(handles.correlationtype,'Value')==5
-        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        if str2double(get(handles.frac_filter_weight,'String'))==0
+            set(handles.frac_filter_weight,'backgroundcolor',[1 0.5 0]);
+        else
+            set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+        end
     else
         set(handles.frac_filter_weight,'backgroundcolor',0.5.*[1 1 1]);
     end
     set(handles.rpcdiameter,'backgroundcolor',0.5*[1 1 1]);
 end
+if get(handles.correlationtype,'Value')==9
+    %overwrite box contents with grid_angle instead of frac_filter_weight
+    set(handles.frac_filter_weight,'string',A.grid_angle); 
+    %relabel
+    set(handles.rpcdiameter_label,'String','Grid Period (pix)');
+    set(handles.frac_filter_weight_label,'String','Grid Angle (deg)');
+
+    [RPCdx, RPCdy] = parseNum(get(handles.rpcdiameter,'String'));
+    [GAx, GAy] = parseNum(get(handles.frac_filter_weight,'string'));
+    
+    if any([RPCdx, RPCdy]<2)
+        if any([RPCdx, RPCdy]==0)
+            set(handles.rpcdiameter,'backgroundcolor','r');
+        else
+            set(handles.rpcdiameter,'backgroundcolor',[1 0.5 0]);
+        end
+    else
+        set(handles.rpcdiameter,'backgroundcolor',[1 1 1]);
+    end
+    
+    DA = mod((GAx-GAy)+180,360)-180;
+    if abs(DA)<1
+        set(handles.frac_filter_weight,'backgroundcolor',[1 0 0]);
+    elseif abs(DA)<30
+        set(handles.frac_filter_weight,'backgroundcolor',[1 0.5 0]);
+    else
+        set(handles.frac_filter_weight,'backgroundcolor',[1 1 1]);
+    end
+    
+else
+    set(handles.rpcdiameter_label,'String','Particle Diameter (pix)');
+    set(handles.frac_filter_weight_label,'String','Fractional Filter Weight (0-1)');
+    %RPC diameter and Frac Filter color should already be set gray above
+end
+
 %May need to check for DCC and disable checkbox, force windowres?
 if get(handles.correlationtype,'Value')==7 % check if DCC
     set(handles.autowinsizecheckbox,'enable','off');
@@ -5199,9 +5357,9 @@ function [num1 num2 num3 num4] = parseNum(str)
 % 
 
 % If an empty string is input...
-if strcmp(str, '')
+if strcmp(str, '') || isempty(str)
 %  Prompt user for input
-    fprintf(1, 'Enter dimensions...\n\n');
+    %fprintf(1, 'Enter dimensions...\n\n');
 %  Set numbers to default values
     num1 = 32;
     num2 = 32;
