@@ -1,4 +1,4 @@
-function [outputdirlist,dewarp_grid,scaling]=imagedewarp_predefined_grid(caldata,dewarpmethod,imagelist,vectorlist,xingrid,yingrid,pranagridbuffer)
+function [outputdirlist,dewarp_grid,scaling]=imagedewarp_predefined_grid(caldata,dewarpmethod,imagelist,vectorlist,xingrid,yingrid,zingrid)
 %This code dewarps the images or vector grid depending on the
 %reconstruction type and outputs the dewarped common grid coordinates and
 %the modified magnification or scaling
@@ -173,7 +173,10 @@ if nargin>4
     %vectors
     xgrid = xingrid;
     ygrid = yingrid;
-    
+    if nargin > 6
+        zgrid = zingrid;
+    end
+        
     %size of image is number of elements in xgrid and ygrid
     [ImaxD,JmaxD] = size(xgrid);
 
@@ -298,7 +301,7 @@ else
     JmaxD = Jmax1; %number of points in x
     
     [xgrid,ygrid]=meshgrid(linspace(xlow,xhigh,Jmax1),linspace(ylow,yhigh,ImaxD));
-    %zgrid=zeros(size(xgrid));
+    zgrid=zeros(size(xgrid));
     overplots=0;
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % Plot fig to check overlap
@@ -333,8 +336,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute this grid in the IMAGE (object) plane to interpolate values
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[Xgrid1,Ygrid1]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam1,aYcam1);
-[Xgrid2,Ygrid2]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam2,aYcam2);
+[Xgrid1,Ygrid1]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam1,aYcam1,zgrid);
+[Xgrid2,Ygrid2]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam2,aYcam2,zgrid);
 
 dewarp_grid.Xgrid1=Xgrid1;
 dewarp_grid.Ygrid1=Ygrid1;
@@ -425,6 +428,7 @@ end
 
 end
 
+%{
 function F=poly_3xy_123z_2eqns(x,alldata)
 % F=poly_3xy_123z_2eqns(x,alldata)
 % this function solves for the xy object coordinates with input
@@ -455,7 +459,9 @@ end
 
 F=Fpoly;
 end
+%}
 
+%{
 function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 % [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 %
@@ -501,4 +507,4 @@ else             % pinhole
     
 end
 end
-
+%}

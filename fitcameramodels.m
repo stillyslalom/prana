@@ -1,4 +1,4 @@
-function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage]=fitcameramodels(allx1data,...
+function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitcameramodels(allx1data,...
     allx2data,allX1data,allX2data,modeltype,optionsls)
 % function [a_cam1 a_cam2 aXcam1 aYcam1 aXcam2 aYcam2 convergemessage]=fitcameramodels(allx1data,...
 %     allx2data,allX1data,allX2data,modeltype,optionsls)
@@ -88,7 +88,24 @@ function [a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage]=fitca
 % save('allX1datagood.mat','allX1data');
 % save('allX2datagood.mat','allX2data');
 
+%keyboard;
+%  allx1data(:,1)=(allx1data(:,1)-mean(allx1data(:,1)))./(1*max(abs(allx1data(:,1))));
+%  allx1data(:,2)=(allx1data(:,2)-mean(allx1data(:,2)))./(1*max(abs(allx1data(:,2))));
+%  allx1data(:,3)=(allx1data(:,3)-mean(allx1data(:,3)))./(1*max(abs(allx1data(:,3))));
+%  
+%  allx2data(:,1)=(allx2data(:,1)-mean(allx2data(:,1)))./(1*max(abs(allx2data(:,1))));
+%  allx2data(:,2)=(allx2data(:,2)-mean(allx2data(:,2)))./(1*max(abs(allx2data(:,2))));
+%  allx2data(:,3)=(allx2data(:,3)-mean(allx2data(:,3)))./(1*max(abs(allx2data(:,3))));
+%  
+%  allX1data(:,1)=(allX1data(:,1)-mean(allX1data(:,1)))./(1*max(abs(allX1data(:,1))));
+%  allX1data(:,2)=(allX1data(:,2)-mean(allX1data(:,2)))./(1*max(abs(allX1data(:,2))));
+%   
+%  allX2data(:,1)=(allX2data(:,1)-mean(allX2data(:,1)))./(1*max(abs(allX2data(:,1))));
+%  allX2data(:,2)=(allX2data(:,2)-mean(allX2data(:,2)))./(1*max(abs(allX2data(:,2))));
 
+ 
+ 
+ 
 optionsls=optimset('MaxIter',30000,'MaxFunEvals',30000,'TolX',1e-11,'TolFun',1e-7,...
         'LargeScale','off','Display','off','Algorithm','levenberg-marquardt');
 
@@ -119,8 +136,12 @@ if modeltype==1
     a=[100; ones(15,1)];        % initial guesss for solver
 elseif modeltype==2
     a=[100; ones(18,1)];        % initial guesss for solver
-else    % camera pinhole model
-    
+elseif modeltype==3
+% camera pinhole model, don't need a guess
+elseif modeltype==4
+    a=[100; ones(19,1)];        % initial guesss for solver    
+else
+    error('Unknown modeltype in fitcameramodels.m')
 end
 
 % Defines the percision of the outputs in the fit table in the GUI.
@@ -128,9 +149,9 @@ printformat='%5.4f';        % for converge box message
 printformat1='%7.6f';
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% If either of the cubic XY camera models are going to be used.  
+% If either of the cubic XY camera models are going to be used (or DaVis).  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if ((modeltype==1) || (modeltype==2))
+if ((modeltype==1) || (modeltype==2) || (modeltype==4))
     
     % Set model type
     alldata.orderz=modeltype;      
@@ -346,6 +367,39 @@ else
 end
 convergemessage={msgX1;msgY1;msgX2;msgY2};
 [aXcam1 aYcam1 aXcam2 aYcam2];
+
+% Approximate camera angles calculated for each calibration Mapping
+% function using the ratio of the coefficients.
+if modeltype==1 || modeltype==2 || modeltype==4
+    
+    %[aXcam1 aYcam1]
+    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+    beta1 =atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+    beta2 =atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+    
+elseif modeltype==3
+    %[a_cam1]
+    aXcam1=[a_cam1(1,4) a_cam1(1,1) a_cam1(1,2) a_cam1(1,3)]';
+    aYcam1=[a_cam1(1,8) a_cam1(1,5) a_cam1(1,6) a_cam1(1,7)]';
+    aXcam2=[a_cam2(1,4) a_cam2(1,1) a_cam2(1,2) a_cam2(1,3)]';
+    aYcam2=[a_cam2(1,8) a_cam2(1,5) a_cam2(1,6) a_cam2(1,7)]';
+    %[aXcam1 aYcam1]
+    
+    alpha1=atand((aYcam1(4)*aXcam1(3) - aYcam1(3)*aXcam1(4))/(aYcam1(3)*aXcam1(2) - aYcam1(2)*aXcam1(3)));
+    alpha2=atand((aYcam2(4)*aXcam2(3) - aYcam2(3)*aXcam2(4))/(aYcam2(3)*aXcam2(2) - aYcam2(2)*aXcam2(3)));
+    beta1=atand((aYcam1(4)*aXcam1(2) - aYcam1(2)*aXcam1(4))/(aYcam1(2)*aXcam1(3) - aYcam1(3)*aXcam1(2)));
+    beta2=atand((aYcam2(4)*aXcam2(2) - aYcam2(2)*aXcam2(4))/(aYcam2(2)*aXcam2(3) - aYcam2(3)*aXcam2(2)));
+    fprintf(' Approximate Camera Angles: Alpha1 = %0.1f  Beta1 = %0.1f; Alpha2 = %0.1f  Beta2 = %0.1f;\n',alpha1,beta1,alpha2,beta2);
+    
+    aXcam1=[];aYcam1=[];
+    
+else
+    warning('Unknown modeltype in fitcameramodels.m')
+end
+
+
 % save('aXcam1.mat','aXcam1');
 % save('aXcam2.mat','aXcam2');
 % save('aYcam1.mat','aYcam1');

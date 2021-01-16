@@ -1,4 +1,4 @@
-function [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,dewarpmethod,imagelist,vectorlist)
+function [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,dewarpmethod,imagelist,vectorlist,xingrid,yingrid,zingrid)
 %This code dewarps the images or vector grid depending on the
 %reconstruction type and outputs the dewarped common grid coordinates and
 %the modified magnification or scaling
@@ -11,6 +11,11 @@ function [outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,dewarpmethod,im
 %outputdirlist=dewarped image output directories
 %dewarp_grid=dewarped grid coordinates
 %scaling=magnification based on dewarped grid
+
+%xingrid=input x vector grid on which you want your output vectors
+%yingrid=input y vector grid on which you want your output vectors
+% both xingrid and yingrid are monotonic 1-D vectors suitable for meshgrid
+%pranagridbuffer=8(let);
 
 %     This file is part of prana, an open-source GUI-driven program for
 %     calculating velocity fields using PIV or PTV.
@@ -177,160 +182,232 @@ elseif strcmp(dewarpmethod,'Soloff')
     
 end
 
+if nargin>4
+    %THIS SECTION IS FOR SETTING THE REQUIRED WORLD COORDINATE DOMAIN
+    %USING THE PREDEFINED VECTOR EVALUATION GRID
+    
+    % %assume that xingrid and yingrid are vectors, not matrices, and that
+    % %the user knew what they were doing and just gave us the points in 
+    % %world spacethat he wanted, and didn't want us to modify the grid
+    % [xgrid,ygrid] = meshgrid(xingrid,yingrid);
+    
+    %we might someday pass grids that aren't orthogonal to the world
+    %coordinates, and so can't be constucted from vector lists via
+    %meshgrid, therefore, we need to pass in meshgrid arrays instead of
+    %vectors
+    xgrid = xingrid;
+    ygrid = yingrid;
+    if nargin > 6
+        zgrid = zingrid;
+    else
+        zgrid =zeros(size(xgrid));
+    end
+        
+    %size of image is number of elements in xgrid and ygrid
+    [ImaxD,JmaxD] = size(xgrid);
 
-x0=[1 1];           % initial guess for solver
-% finds the over lap for the two cameras. This is only performed the
-% first time and then the information is used subsequently.
-%if c==1
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Determination of Area Overlap
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% find overlapping area using the corner points of the first loaded
-% images, the order for X1points and similar is [bl br tl tr]
+else
 
-fprintf('Computing overlapping area...\n');
+    x0=[1 1];           % initial guess for solver
+    % finds the over lap for the two cameras. This is only performed the
+    % first time and then the information is used subsequently.
+    %if c==1
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Determination of Area Overlap
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % find overlapping area using the corner points of the first loaded
+    % images, the order for X1points and similar is [bl br tl tr]
 
-bottom1X=linspace(X1points(1),X1points(2),Jmax1)';
-top1X=linspace(X1points(3),X1points(4),Jmax1)';
-left1X=X1points(1)*ones(1,Imax1)';
-right1X=X1points(2)*ones(1,Imax1)';
-bottom1Y=Y1points(1)*ones(1,Jmax1)';
-top1Y=Y1points(3)*ones(1,Jmax1)';
-left1Y=linspace(Y1points(1),Y1points(3),Imax1)';
-right1Y=linspace(Y1points(2),Y1points(4),Imax1)';
+    fprintf('Computing overlapping area...\n');
 
-bottom2X=linspace(X2points(1),X2points(2),Jmax2)';
-top2X=linspace(X2points(3),X2points(4),Jmax2)';
-left2X=X2points(1)*ones(1,Imax2)';
-right2X=X2points(2)*ones(1,Imax2)';
-bottom2Y=Y2points(1)*ones(1,Jmax2)';
-top2Y=Y2points(3)*ones(1,Jmax2)';
-left2Y=linspace(Y2points(1),Y2points(3),Imax2)';
-right2Y=linspace(Y2points(2),Y2points(4),Imax2)';
+    %how many points along each edge to interpolate
+    NJ1 = 10; %Jmax1; %points in x in original image
+    NI1 = 10; %Imax1; %points in y in original image
+    NJ2 = 10; %Jmax2; %points in x in original image
+    NI2 = 10; %Imax2; %points in y in original image
 
-%keyboard;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% calculate x,y for the bottom,top,left,right vectors for X,Y from
-% camera 1
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-alldata.aX=aXcam1';
-alldata.aY=aYcam1';
+    bottom1X=linspace(X1points(1),X1points(2),NJ1)';
+    top1X=linspace(X1points(3),X1points(4),NJ1)';
+    left1X=X1points(1)*ones(1,NI1)';
+    right1X=X1points(2)*ones(1,NI1)';
+    bottom1Y=Y1points(1)*ones(1,NJ1)';
+    top1Y=Y1points(3)*ones(1,NJ1)';
+    left1Y=linspace(Y1points(1),Y1points(3),NI1)';
+    right1Y=linspace(Y1points(2),Y1points(4),NI1)';
 
-bottom1xy = zeros(2,Jmax1);
-top1xy    = zeros(2,Jmax1);
-points=[bottom1X bottom1Y];
-for k=1:Jmax1
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 1
-    [bottom1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    bottom2X=linspace(X2points(1),X2points(2),NJ2)';
+    top2X=linspace(X2points(3),X2points(4),NJ2)';
+    left2X=X2points(1)*ones(1,NI2)';
+    right2X=X2points(2)*ones(1,NI2)';
+    bottom2Y=Y2points(1)*ones(1,NJ2)';
+    top2Y=Y2points(3)*ones(1,NJ2)';
+    left2Y=linspace(Y2points(1),Y2points(3),NI2)';
+    right2Y=linspace(Y2points(2),Y2points(4),NI2)';
+
+    %keyboard;
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % calculate x,y for the bottom,top,left,right vectors for X,Y from
+    % camera 1
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    alldata.aX=aXcam1';
+    alldata.aY=aYcam1';
+
+    bottom1xy = zeros(2,NJ1);
+    top1xy    = zeros(2,NJ1);
+    bottom1XY=[bottom1X bottom1Y]';
+    for k=1:NJ1
+        alldata.XYpoint=bottom1XY(:,k);
+        % solve for x,y for camera 1
+        [bottom1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+    top1XY=[top1X top1Y]';
+    for k=1:NJ1
+        alldata.XYpoint=top1XY(:,k);
+        % solve for x,y for camera 1
+        [top1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+
+    left1xy  = zeros(2,NI1);
+    right1xy = zeros(2,NI1);
+    left1XY=[left1X left1Y]';
+    for k=1:NI1
+        alldata.XYpoint=left1XY(:,k);
+        % solve for x,y for camera 1
+        [left1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+    right1XY=[right1X right1Y]';
+    for k=1:NI1
+        alldata.XYpoint=right1XY(:,k);
+        % solve for x,y for camera 1
+        [right1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % calculate x,y for the bottom,top,left,right vectors for X,Y from
+    % camera 2
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    alldata.aX=aXcam2';
+    alldata.aY=aYcam2';
+
+    bottom2xy = zeros(2,NJ2);
+    top2xy    = zeros(2,NJ2);
+    bottom2XY=[bottom2X bottom2Y]';
+    for k=1:NJ2
+        alldata.XYpoint=bottom2XY(:,k);
+        % solve for x,y for camera 2
+        [bottom2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+    top2XY=[top2X top2Y]';
+    for k=1:NJ2
+        alldata.XYpoint=top2XY(:,k);
+        % solve for x,y for camera 2
+        [top2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+
+    left2xy  = zeros(2,NI2);
+    right2xy = zeros(2,NI2);
+    left2XY=[left2X left2Y]';
+    for k=1:NI2
+        alldata.XYpoint=left2XY(:,k);
+        % solve for x,y for camera 2
+        [left2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+    right2XY=[right2X right2Y]';
+    for k=1:NI2
+        alldata.XYpoint=right2XY(:,k);
+        % solve for x,y for camera 2
+        [right2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+    end
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % make object coordinate grid
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    %collection of all image border points in world coordinates
+    all1xy = [left1xy right1xy top1xy bottom1xy];
+    all2xy = [left2xy right2xy top2xy bottom2xy];
+
+    %calculate approximate pixel scaling along each border
+    % results are in pixels per world unit (mm usually)
+    left1scale   = norm(left1XY(:,end)  -left1XY(:,1)  ) / norm(left1xy(:,end)  -left1xy(:,1)  );
+    right1scale  = norm(right1XY(:,end) -right1XY(:,1) ) / norm(right1xy(:,end) -right1xy(:,1) );
+    top1scale    = norm(top1XY(:,end)   -top1XY(:,1)   ) / norm(top1xy(:,end)   -top1xy(:,1)   );
+    bottom1scale = norm(bottom1XY(:,end)-bottom1XY(:,1)) / norm(bottom1xy(:,end)-bottom1xy(:,1));
+
+    left2scale   = norm(left2XY(:,end)  -left2XY(:,1)  ) / norm(left2xy(:,end)  -left2xy(:,1)  );
+    right2scale  = norm(right2XY(:,end) -right2XY(:,1) ) / norm(right2xy(:,end) -right2xy(:,1) );
+    top2scale    = norm(top2XY(:,end)   -top2XY(:,1)   ) / norm(top2xy(:,end)   -top2xy(:,1)   );
+    bottom2scale = norm(bottom2XY(:,end)-bottom2XY(:,1)) / norm(bottom2xy(:,end)-bottom2xy(:,1));
+
+    %pick the highest resolution region for each image (pix/unit)
+    im1scale = max([left1scale,right1scale,top1scale,bottom1scale]);
+    im2scale = max([left2scale,right2scale,top2scale,bottom2scale]);
+
+    %for overall dewarp, use highest resolution across both images
+    dewarpscale = max([im1scale, im2scale]); %pixels/unit
+
+    %find the widest extents of the original images (world units)
+    xlow  = min([all1xy(1,:) all2xy(1,:)]);
+    xhigh = max([all1xy(1,:) all2xy(1,:)]);
+    ylow  = min([all1xy(2,:) all2xy(2,:)]);
+    yhigh = max([all1xy(2,:) all2xy(2,:)]);
+
+    %set the number of points in dewarped image to approximate highest
+    %resolution across both images
+    ImaxD = ceil((yhigh-ylow)*dewarpscale); %number of points in y
+    JmaxD = ceil((xhigh-xlow)*dewarpscale); %number of points in x
+
+    %need to adjust upper limits to make sure scale is exact, and is same in 
+    %both directions
+    xhigh = xlow + (JmaxD-1)/dewarpscale;
+    yhigh = ylow + (ImaxD-1)/dewarpscale;
+
+    %using corrected xhigh,yhigh the scale should be the same in x and y
+    [xgrid,ygrid]=meshgrid(linspace(xlow,xhigh,JmaxD),linspace(ylow,yhigh,ImaxD));
+
+    % set zgrid to depth of current level if multiplane target
+    zgrid=zeros(size(xgrid));
+
+    overplots=1;
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Plot fig to check overlap
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if overplots == 1
+        % use this to plot overlapping area in x,y
+        figure(10);
+        H(1) = plot(bottom1xy(1,:),bottom1xy(2,:),'^-r');hold on;
+               plot(top1xy(1,:)   ,top1xy(2,:)   ,'v-r');hold on;
+               plot(left1xy(1,:)  ,left1xy(2,:)  ,'>-r');hold on;
+               plot(right1xy(1,:) ,right1xy(2,:) ,'<-r');hold on;
+        H(2) = plot(bottom2xy(1,:),bottom2xy(2,:),'^-b');hold on;
+               plot(top2xy(1,:)   ,top2xy(2,:)   ,'v-b');hold on;
+               plot(left2xy(1,:)  ,left2xy(2,:)  ,'>-b');hold on;
+               plot(right2xy(1,:) ,right2xy(2,:) ,'<-b');hold on;
+        H(3) = plot([xlow xlow xhigh xhigh xlow],[ylow yhigh yhigh ylow ylow],'-k','LineWidth',2);hold on;
+        % H2 = plot(xgrid,ygrid,'.r','MarkerSize',4);xlabel('x (mm)');ylabel('y (mm)');
+        % H(4) = H2(1);
+        title('Camera Overlap and new vector locations');
+        Lstr = {'Camera 1 border','Camera 2 border','Overlap Border'};%,'Vector location'};
+        legend(H,Lstr);
+        %             set(L,'Position',[0.4 0.4 0.2314 0.1869])
+        %             slashlocs = find(data.outputdirectory == '/');
+        %             set(gcf,'name',data.outputdirectory(slashlocs(end)+1:end))
+        %         axis([-200 100 -150 250])
+        axis equal xy
+        drawnow
+        hold off
+
+    end
+    %keyboard;
 end
-points=[top1X top1Y];
-for k=1:Jmax1
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 1
-    [top1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-
-left1xy  = zeros(2,Imax1);
-right1xy = zeros(2,Imax1);
-points=[left1X left1Y];
-for k=1:Imax1
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 1
-    [left1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-points=[right1X right1Y];
-for k=1:Imax1
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 1
-    [right1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% calculate x,y for the bottom,top,left,right vectors for X,Y from
-% camera 2
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-alldata.aX=aXcam2';
-alldata.aY=aYcam2';
-
-bottom2xy = zeros(2,Jmax2);
-top2xy    = zeros(2,Jmax2);
-points=[bottom2X bottom2Y];
-for k=1:Jmax2
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 2
-    [bottom2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-points=[top2X top2Y];
-for k=1:Jmax2
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 2
-    [top2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-
-left2xy  = zeros(2,Imax2);
-right2xy = zeros(2,Imax2);
-points=[left2X left2Y];
-for k=1:Imax2
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 2
-    [left2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-points=[right2X right2Y];
-for k=1:Imax2
-    alldata.XYpoint=points(k,:)';
-    % solve for x,y for camera 2
-    [right2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
-end
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% make object coordinate grid
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-xlow=max([left1xy(1,:) left2xy(1,:)]);
-xhigh=min([right1xy(1,:) right2xy(1,:)]);
-ylow=max([bottom1xy(2,:) bottom2xy(2,:)]);
-yhigh=min([top1xy(2,:) top2xy(2,:)]);
-
-%set the number of points in dewarped image to the size of Camera 1's
-%original undewarped image.
-ImaxD = Imax1; %number of points in y
-JmaxD = Jmax1; %number of points in x
-
-[xgrid,ygrid]=meshgrid(linspace(xlow,xhigh,JmaxD),linspace(ylow,yhigh,ImaxD));
-%zgrid=zeros(size(xgrid));
-overplots=1;
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Plot fig to check overlap
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-if overplots == 1
-    % use this to plot overlapping area in x,y
-    figure(10);
-    H(1) = plot(bottom1xy(1,:),bottom1xy(2,:),'+');hold on;
-    plot(top1xy(1,:),top1xy(2,:),'+');hold on;
-    plot(left1xy(1,:),left1xy(2,:),'+');hold on;
-    plot(right1xy(1,:),right1xy(2,:),'+');hold on;
-    H(2) = plot(bottom2xy(1,:),bottom2xy(2,:),'o');hold on;
-    plot(top2xy(1,:),top2xy(2,:),'o');hold on;
-    plot(left2xy(1,:),left2xy(2,:),'o');hold on;
-    plot(right2xy(1,:),right2xy(2,:),'o');hold on;
-    H(3) = plot([xlow xlow xhigh xhigh xlow],[ylow yhigh yhigh ylow ylow],'-k','LineWidth',2);hold on;
-    H2 = plot(xgrid,ygrid,'.r','MarkerSize',4);xlabel('x (mm)');ylabel('y (mm)');
-    H(4) = H2(1);
-    title('Camera Overlap and new vector locations');
-    Lstr = {'Camera 1 border','Camera 2 border','Overlap Border','Vector location'};
-    legend(H,Lstr);
-    %             set(L,'Position',[0.4 0.4 0.2314 0.1869])
-    %             slashlocs = find(data.outputdirectory == '/');
-    %             set(gcf,'name',data.outputdirectory(slashlocs(end)+1:end))
-    %         axis([-200 100 -150 250])
-    drawnow
-end
+    
 %angle calculation
 [rows,cols]=size(xgrid);
 
 % xgrid=X1;
 % ygrid=Y1;
-zgrid=zeros(size(xgrid));
+% zgrid=zeros(size(xgrid));
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute gradients of calibration functions
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -369,6 +446,24 @@ elseif caldata.modeltype==2
         dFdx3(:,:,gg) = a(4) + a(8)*xgrid + a(9)*ygrid + 2*a(10)*zgrid + a(15)*xgrid.^2 + a(16)*xgrid.*ygrid + ...
             a(17)*ygrid.^2 + 2*a(18)*xgrid.*zgrid + 2*a(19)*ygrid.*zgrid;
     end
+elseif caldata.modeltype==4
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    for gg=1:4
+        a=aall(:,gg);
+        dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
+            2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid + ...
+            2*a(17)*xgrid.*ygrid.*zgrid + a(18)*ygrid.^2.*zgrid + 3*a(19)*xgrid.^2.*zgrid;
+
+        dFdx2(:,:,gg) = a(3) + a(6)*xgrid + 2*a(7)*ygrid + a(9)*zgrid + a(11)*xgrid.^2 + ...
+            2*a(12)*xgrid.*ygrid + 3*a(13)*ygrid.^2 + a(15)*xgrid.*zgrid + 2*a(16)*ygrid.*zgrid + ...
+            a(17)*xgrid.^2.*zgrid + 2*a(18)*xgrid.*ygrid.*zgrid + 3*a(20)*ygrid.^2.*zgrid;
+
+        dFdx3(:,:,gg) = a(4) + a(8)*xgrid + a(9)*ygrid + a(14)*xgrid.^2 + a(15)*xgrid.*ygrid + a(16)*ygrid.^2 + ...
+            a(17)*xgrid.^2.*ygrid + a(18)*xgrid.*ygrid.^2 + a(19)*xgrid.^3 + a(20)*ygrid.^3;
+    end
+        
 end
 
 alpha1 = ((dFdx3(:,:,2).*dFdx2(:,:,1))-(dFdx2(:,:,2).*dFdx3(:,:,1)))./(dFdx2(:,:,2).*dFdx1(:,:,1)-dFdx1(:,:,2).*dFdx2(:,:,1));
@@ -398,8 +493,8 @@ title('Camera 1 Angle \beta1','FontSize',16)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Compute this grid in the IMAGE (object) plane to interpolate values
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-[Xgrid1,Ygrid1]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam1,aYcam1);
-[Xgrid2,Ygrid2]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam2,aYcam2);
+[Xgrid1,Ygrid1]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam1,aYcam1,zgrid);
+[Xgrid2,Ygrid2]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aXcam2,aYcam2,zgrid);
 
 dewarp_grid.Xgrid1=Xgrid1;
 dewarp_grid.Ygrid1=Ygrid1;
@@ -422,8 +517,11 @@ if strcmp(dewarpmethod,'Willert')
     
     %Both numerator and denominator need to be (Max - Min), see Soloff
     %below for analogous construction
-    scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(Jmax1-1);
-    scaling.yscale =(max(ygrid(:))-min(ygrid(:)))/(Imax1-1);
+    %JJC: denominator was Jmax1, Imax1. I think this was a holdover from
+    %when dewarped image size was set to match input images. Change to be
+    %new calculated size of dewarped images
+    scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(JmaxD-1);
+    scaling.yscale =(max(ygrid(:))-min(ygrid(:)))/(ImaxD-1);
 elseif strcmp(dewarpmethod,'Soloff')
     %JJC: this was already correct, see above
     scaling.xscale =(max(xgrid(:))-min(xgrid(:)))/(max(x1(:))-min(x1(:)));
@@ -438,23 +536,31 @@ if strcmp(dewarpmethod,'Willert')
     if dewarpflag==1
         delete(gcp);
         parpool; % calling matlabpool for dewarping in parallel but in future versions it should be parpool
-        parfor k=fstart:fend+1
-            %reading recorded images
+        
+        %parfor k=fstart:fend+1
+        %parfor iteration variable must be consecutive integers, so create
+        %a list variable to index into
+        flist = [fstart:fstep:fend,(fstart:fstep:fend)+cstep];  
+        M=3;
+        parfor (n=1:length(flist),M)
+            %get current frame number
+            k=flist(n)
             
-            IMLi= im2double(imread(fullfile(dir1,sprintf(istring1,base1,k))));
-            IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            %reading recorded images
+            IMLi= (imread(fullfile(dir1,sprintf(istring1,base1,k))));
+            %IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            IMRi= (imread(fullfile(dir2,sprintf(istring1,base2,k))));
             
             incl=class(IMLi);
             %flipping images
-            IMLi=IMLi(end:-1:1,:);
-            IMRi=IMRi(end:-1:1,:);
+            IMLi=double(IMLi(end:-1:1,:));
+            IMRi=double(IMRi(end:-1:1,:));
             %Interpolating on a common grid
             %sincBlackmanInterp2 assumes images are on grid [1 NX] and [1 NY]
-            IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
-            IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
-            
-            %             IMLo=double((interp2(x1,y1,IMLi, Xgrid1, Ygrid1, 'spline',0)));
-            %             IMRo=double((interp2(x1,y1,IMRi, Xgrid2, Ygrid2, 'spline',0)));
+%             IMLo=((sincBlackmanInterp2(IMLi, Xgrid1, Ygrid1, 8,'blackman')));
+%             IMRo=((sincBlackmanInterp2(IMRi, Xgrid2, Ygrid2, 8,'blackman')));
+            IMLo=((interp2(IMLi, Xgrid1, Ygrid1, 'cubic',0)));
+            IMRo=((interp2(IMRi, Xgrid2, Ygrid2, 'cubic',0)));
             
             
             %  keyboard;
@@ -480,8 +586,9 @@ if strcmp(dewarpmethod,'Willert')
             
             %keyboard;
             %JJC: why the heck are we saving them with no TIFF compression?
-            imwrite((IMLo),fullfile(dirout1,sprintf(istring1,base1,k)),'TIFF','WriteMode','overwrite','Compression','none');
-            imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k+cstep-1)),'TIFF','WriteMode','overwrite','Compression','none');
+            imwrite((IMLo),fullfile(dirout1,sprintf(istring1,base1,k)),'TIFF','WriteMode','overwrite','Compression','deflate');
+            %imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k+cstep-1)),'TIFF','WriteMode','overwrite','Compression','deflate');
+            imwrite((IMRo),fullfile(dirout2,sprintf(istring1,base2,k)),'TIFF','WriteMode','overwrite','Compression','deflate');
             %keyboard;
             
         end
@@ -491,6 +598,7 @@ end
 
 end
 
+%{
 function F=poly_3xy_123z_2eqns(x,alldata)
 % F=poly_3xy_123z_2eqns(x,alldata)
 % this function solves for the xy object coordinates with input
@@ -521,7 +629,9 @@ end
 
 F=Fpoly;
 end
+%}
 
+%{
 function [Xgrid,Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 % [Xgrid Ygrid]=poly_3xy_123z_fun(xgrid,ygrid,orderz,aX,aY)
 %
@@ -567,4 +677,5 @@ else             % pinhole
     
 end
 end
+%}
 

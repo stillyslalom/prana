@@ -75,7 +75,7 @@ aYcam2=caldata.aYcam2;
 
 % Doing dewarping and cross correlation to calculate the disparity map (Dux and Duy).
 %imagelist=selfcaljob;
-[outputdirlist,dewarp_grid,~]=imagedewarp(caldata,'Willert',selfcaljob);
+[outputdirlist,dewarp_grid,scaling]=imagedewarp(caldata,'Willert',selfcaljob);
 
 %keyboard;
 
@@ -179,6 +179,32 @@ Duy=Duy.*(scaley);
 %world grid points shifted by the amount of disparity to get the
 %locations at which camera 2 local viewing angle are calculated.
 
+%Check if we want to use the mean disparity to shift the cameras before we
+%calculate the laser plane displacement
+fprintf('Do you want to shift the cameras by the mean disparity? (Y/N):') %message for if we pre-compute the mean
+shiftCam= input('','s');
+
+if strcmpi(shiftCam,'Y')    
+    %remove the mean displacement as a x-y coordinate translation
+    %should recalculate calibration functions now, and then redo disparities
+    dx = mean(Dux(:));
+    dy = mean(Duy(:));
+    Dux = Dux - dx;
+    Duy = Duy - dy;
+    
+    fprintf('Do you want to ignore the residual disparity? (Y/N):') %message for if we pre-compute the mean
+    onlyShift= input('','s');
+    
+    if strcmpi(onlyShift,'Y')
+        Dux = 0;
+        Duy = 0;
+    end
+
+else
+    dx = 0;
+    dy = 0;
+end
+
 xgrid=xg-Dux./2;
 x2grid=xg+Dux./2;
 ygrid=yg-Duy./2;
@@ -226,19 +252,71 @@ ztrans2=Roty'*Rotx'*[allx2data(:,1)';allx2data(:,2)';allx2data(:,3)'] - [tz(1).*
 % hold on;scatter3(ztrans2(1,:),ztrans2(2,:),ztrans2(3,:),'r');hold off,legend('cam1','cam2')
 
 
-fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,tz(3))
+% fprintf('alpha = %g deg; beta = %g deg; tz = %g mm.\n',alpha*180/pi,beta*180/pi,tz(3))
+fprintf('alpha = %g deg; beta = %g deg; dx = %g mm; dy = %g mm; tz = %g mm.\n',alpha*180/pi,beta*180/pi,dx,dy,tz(3)) %if we want to include the mean displacemet
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%Goal is to rotate points displaced by disparity map into a position that
+%will have no disparity when imaged by cameras at corrected relative
+%positions.
+
+% %original method was to calculate residual disparity directly
+% lg = length(xgrid(:));
+% zres1 = Roty'*Rotx'*[xgrid(:)'; ygrid(:)'; zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
+% zres2 = Roty'*Rotx'*[x2grid(:)';y2grid(:)';zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
+% 
+% 
+% dzres = zres2 - zres1;
+% 
+% figure(9);quiver(X3(:)',Y3(:)',dzres(1,:)/scalex,dzres(2,:)/scaley,1);title('difference between world coordinates in pixels');
+% axis equal tight xy, set(9,'Name','residual')
+
+%First recalculate a temporary calibration using just the triangulated fit
+%(can we reuse this if we don't save the z-rotation and xy-shift?)
+caldatamod.allx1data=ztrans1';
+caldatamod.allx2data=ztrans2'; %outputs the modified planes
+%calculate new polynomial transform coefficients
+[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
+    caldatamod.allx2data,allX1data,allX2data,method,optionsls);
+
+%Move displaced vector points in world space to corrected location
 lg = length(xgrid(:));
 zres1 = Roty'*Rotx'*[xgrid(:)'; ygrid(:)'; zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
 zres2 = Roty'*Rotx'*[x2grid(:)';y2grid(:)';zeros(1,lg)] - [tz(1).*ones(1,lg);tz(2).*ones(1,lg);tz(3).*ones(1,lg)];
 
-dzres = zres2 - zres1;
+%next, project world coordinates back to image plane
+[X1res,Y1res]=poly_3xy_123z_fun(zres1(1,:),zres1(2,:),method,aXcam1,aYcam1,zres1(3,:));
+[X2res,Y2res]=poly_3xy_123z_fun(zres2(1,:),zres2(2,:),method,aXcam2,aYcam2,zres2(3,:));
 
-% figure(9);quiver(X3(:)',Y3(:)',dzres(1,:)/scalex,dzres(2,:)/scaley,1);title('difference between world coordinates in pixels');
-% axis equal tight xy, set(9,'Name','residual')
+%finally, reproject image points back to new z=0 plane
+x0=[1 1];           % initial guess for solver
+%camera 1:
+alldata.aX=aXcam1';
+alldata.aY=aYcam1';
+alldata.orderz = method;
+res1xy = zeros(2,length(X1res));
+res1XY = [X1res;Y1res];
+for k=1:length(X1res)
+    alldata.XYpoint=res1XY(:,k);
+    % solve for x,y for camera 1
+    [res1xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+end
+%camera 2:
+alldata.aX=aXcam2';
+alldata.aY=aYcam2';
+res2xy = zeros(2,length(X2res));
+res2XY = [X2res;Y2res];
+alldata.orderz = method;
+for k=1:length(X2res)
+    alldata.XYpoint=res2XY(:,k);
+    % solve for x,y for camera 1
+    [res2xy(:,k),~,~]=fsolve(@(x) poly_3xy_123z_2eqns(x,alldata),x0,optionsls);
+end
+
+dzres = res2xy - res1xy;
+
 
 %try to correct rotation between cameras
 lg = length(xgrid(:));
@@ -260,64 +338,143 @@ else
     y2grid = yg(:)+dzres(2,:)'./2; 
 end
 
+%% Calculate an inplane rotation and shift based on residual disparities
+
+% % Calculate only the in-plane rotation and shift
+% X2 = [x2grid(:).'; y2grid(:).'];
+% X1 = [xgrid(:).' ; ygrid(:).' ; ones(1,lg)];
+% 
+% %calculate the transform matrix between camera 1 and 2
+% A = X2/X1;
+% %extract the translation needed to shift the center of rotation
+% tx = A(1,3);
+% ty = A(2,3);
+% %assume small angles when calculating rotation angle
+% gamma = (-A(1,2) + A(2,1))/2;
+% fprintf('gamma = %g deg; tx = %g mm; ty = %g mm.\n',gamma*180/pi,tx,ty)
+% %build the analytical transform matrix
+% Rotz = [cos(gamma/2) -sin(gamma/2) 0 ; sin(gamma/2) cos(gamma/2) 0; 0 0 1];
+% 
+% %
+% %keyboard
+% 
+% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% 
+% %not sure why, but these input statements don't seem to be writing the
+% %prompt to the command window.  Move text to separate fprintf command
+% fprintf('Do you want to apply the Z-rotation? (Y/N):')
+% refineZR= input('','s');
+% % refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
+% 
+% 
+% if strcmpi(refineZR,'Y')
+%     reftrue=1;
+% %     fprintf('Do you want to apply the X-Y shift? (Y/N):')
+%     fprintf('Do you want to apply the residual X-Y shift? (Y/N):') %message for if we pre-compute the mean
+%     refineXY= input('','s');
+%     % refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
+% else
+%     reftrue=0;
+%     refineXY = 'N';
+% end
+% 
+% %do we want to include the shift from the z-rotation too?
+% if strcmpi(refineXY,'Y')
+% %     tf = [tx/2; ty/2 ; 0];
+%     tf = [(dx+tx)/2; (dy+ty)/2 ; 0];  %include the mean shift
+% else
+% %     tf = [0; 0 ; 0];
+%     tf = [dx/2; dy/2 ; 0];  %include a mean shift
+% end
+% 
+% if reftrue
+%     %modify the world coordinates of each camera with a rotation in Z
+%     
+%     %this also includes a shift in x and y, but it seems to fight with the
+%     %planar adjustments which can also produce apparent tx and ty, so we
+%     %added a question to see if the user even wants it.  Good practice
+%     %would be to converge the planar misalignment before trying the
+%     %rotation and shifts.
+%     ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+%     ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+% 
+%     % %For now, only apply the rotation about the origin of the world
+%     % %coordinates
+%     % ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)];
+%     % ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)];
+%     
+% else 
+% %     %use only the z-plane tilts we orginally calculated
+% %     ztrans1r = ztrans1;
+% %     ztrans2r = ztrans2;
+%     %use only the z-plane tilts we orginally calculated, plus the uniform
+%     %shifts
+%     ztrans1r = ztrans1 + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
+%     ztrans2r = ztrans2 - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+% end
+   
+%% Calculate an in-plane affine transform based on residual disparities
+
+% Allow in-plane affine transform to be fully general (but only 2D)
+
+X0 = [xg(:).'    ; yg(:).'    ];
+X1 = [xgrid(:).' ; ygrid(:).' ];
 X2 = [x2grid(:).'; y2grid(:).'];
-X1 = [xgrid(:).' ; ygrid(:).' ; ones(1,lg)];
 
-%calculate the transform matrix between camera 1 and 2
-A = X2/X1;
+%transform matrices
+A  = X2/[X1; ones(1,lg)];   %should be approximately A=A2*inv(A1)
+A1 = X1/[X0; ones(1,lg)];   %transform from original grid to cam 1
+A2 = X2/[X0; ones(1,lg)];   %transform from original grid to cam 2
+
 %extract the translation needed to shift the center of rotation
-tx = A(1,3);
-ty = A(2,3);
-%assume small angles when calculating rotation angle
-gamma = (-A(1,2) + A(2,1))/2;
-fprintf('gamma = %g deg; tx = %g mm; ty = %g mm.\n',gamma*180/pi,tx,ty)
+tx1 = A1(1,3);
+ty1 = A1(2,3);
+tx2 = A2(1,3);
+ty2 = A2(2,3);
+
 %build the analytical transform matrix
-Rotz = [cos(gamma/2) -sin(gamma/2) 0 ; sin(gamma/2) cos(gamma/2) 0; 0 0 1];
-%%
-%keyboard
+Rotz1 = [A1(1:2,1:2), [0;0]; 0 0 1]; %cam 1
+Rotz2 = [A2(1:2,1:2), [0;0]; 0 0 1]; %cam 2
 
-%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%not sure why, but these input statements don't seem to be writing the
+%prompt to the command window.  Move text to separate fprintf command
+fprintf('Do you want to apply the in-plane correction? (Y/N):')
+refine2D= input('','s');
 
-refineZR= input('Do you want to apply the Z-rotation? (Y/N):','s');
-
-
-if strcmpi(refineZR,'Y')
+if strcmpi(refine2D,'Y')
     reftrue=1;
-    refineXY= input('Do you want to apply the X-Y shift? (Y/N):','s');
+    %include the mean shift plus translation
+    tf1 = [ dx/2-tx1;  dy/2-ty1 ; 0];  
+    tf2 = [-dx/2-tx2; -dy/2-ty2 ; 0];  
 else
     reftrue=0;
-    refineXY = 'N';
-end
-
-%do we want to include the shift from the z-rotation too?
-if strcmpi(refineXY,'Y')
-    tf = [tx/2; ty/2 ; 0];
-else
-    tf = [0; 0 ; 0];
+    %include only the mean shift
+    tf1 = [ dx/2;  dy/2 ; 0]; 
+    tf2 = [-dx/2; -dy/2 ; 0];  
 end
 
 if reftrue
     %modify the world coordinates of each camera with a rotation in Z
     
-    %this also includes a shift in x and y, but it seems to fight with the
-    %planar adjustments which can also produce apparent tx and ty, so we
-    %added a question to see if the user even wants it.  Good practice
+    %Good practice
     %would be to converge the planar misalignment before trying the
     %rotation and shifts.
-    ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf(1).*ones(1,l1);tf(2).*ones(1,l1);tf(3).*ones(1,l1)];
-    ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] - [tf(1).*ones(1,l2);tf(2).*ones(1,l2);tf(3).*ones(1,l2)];
+    ztrans1r=inv(Rotz1) * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)] + [tf1(1).*ones(1,l1);tf1(2).*ones(1,l1);tf1(3).*ones(1,l1)];
+    ztrans2r=inv(Rotz2) * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)] + [tf2(1).*ones(1,l2);tf2(2).*ones(1,l2);tf2(3).*ones(1,l2)];
 
-    % %For now, only apply the rotation about the origin of the world
-    % %coordinates
-    % ztrans1r=Rotz  * [ztrans1(1,:);ztrans1(2,:);ztrans1(3,:)];
-    % ztrans2r=Rotz' * [ztrans2(1,:);ztrans2(2,:);ztrans2(3,:)];
     
 else 
-    %use only the z-plane tilts we orginally calculated
-    ztrans1r = ztrans1;
-    ztrans2r = ztrans2;
+%     %use only the z-plane tilts we orginally calculated
+%     ztrans1r = ztrans1;
+%     ztrans2r = ztrans2;
+    %use only the z-plane tilts we orginally calculated, plus the uniform
+    %shifts
+    ztrans1r = ztrans1 + [tf1(1).*ones(1,l1);tf1(2).*ones(1,l1);tf1(3).*ones(1,l1)];
+    ztrans2r = ztrans2 + [tf2(1).*ones(1,l2);tf2(2).*ones(1,l2);tf2(3).*ones(1,l2)];
 end
-    
+
+
+
 %% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 
@@ -326,14 +483,14 @@ end
 caldatamod.allx1data=ztrans1r';
 caldatamod.allx2data=ztrans2r'; %outputs the modified planes
 %calculate new polynomial transform coefficients
-[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitmodels(caldatamod.allx1data,...
+[~,~, aXcam1, aYcam1, aXcam2, aYcam2,convergemessage]=fitcameramodels(caldatamod.allx1data,...
     caldatamod.allx2data,allX1data,allX2data,method,optionsls);
 caldatamod.aXcam1=aXcam1;
 caldatamod.aYcam1=aYcam1;
 caldatamod.aXcam2=aXcam2;
 caldatamod.aYcam2=aYcam2;
 caldatamod.convergemessage=convergemessage; % Storing the convergence information for each iteration of selfcalibartion
-convergemessage % displaying convergemeaasge
+convergemessage; % displaying convergemeaasge
 end
 
 
@@ -371,7 +528,7 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=1:2
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
                 2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid;
@@ -386,7 +543,7 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 2nd order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=1:2
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5).*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(11)*xgrid.^2 + 2*a(12)*xgrid.*ygrid + ...
                 a(13)*ygrid.^2 + 2*a(15)*xgrid.*zgrid + a(16)*ygrid.*zgrid + a(18)*zgrid.^2;
@@ -398,6 +555,24 @@ alphatan=zeros(rows,cols,2);betatan=zeros(rows,cols,2);
                 a(17)*ygrid.^2 + 2*a(18)*xgrid.*zgrid + 2*a(19)*ygrid.*zgrid;
         end
         
+    elseif caldata.modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        for gg=1:2
+            a=aall(:,gg);
+            dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
+                2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid + ...
+                2*a(17)*xgrid.*ygrid.*zgrid + a(18)*ygrid.^2.*zgrid + 3*a(19)*xgrid.^2.*zgrid;
+            
+            dFdx2(:,:,gg) = a(3) + a(6)*xgrid + 2*a(7)*ygrid + a(9)*zgrid + a(11)*xgrid.^2 + ...
+                2*a(12)*xgrid.*ygrid + 3*a(13)*ygrid.^2 + a(15)*xgrid.*zgrid + 2*a(16)*ygrid.*zgrid + ...
+                a(17)*xgrid.^2.*zgrid + 2*a(18)*xgrid.*ygrid.*zgrid + 3*a(20)*ygrid.^2.*zgrid;
+            
+            dFdx3(:,:,gg) = a(4) + a(8)*xgrid + a(9)*ygrid + a(14)*xgrid.^2 + a(15)*xgrid.*ygrid + a(16)*ygrid.^2 + ...
+                a(17)*xgrid.^2.*ygrid + a(18)*xgrid.*ygrid.^2 + a(19)*xgrid.^3 + a(20)*ygrid.^3;
+        end
+        
     end
 
 %calculating the viewing angles using formula (7) and (8) from Giordano and Astarita's paper "Spatial resolution of the Stereo PIV technique" (2009)
@@ -406,9 +581,9 @@ alphatan(:,:,1)=(((dFdx3(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx3(:,:,1)))./
 betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./((dFdx1(:,:,2).*dFdx2(:,:,1)) - (dFdx2(:,:,2).*dFdx1(:,:,1))));
 
 %aall=[aXcam1 aYcam1 aXcam2 aYcam2];
-    dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
-    dFdx2=zeros(rows,cols,4);
-    dFdx3=zeros(rows,cols,4);
+%    dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
+%    dFdx2=zeros(rows,cols,4);
+%    dFdx3=zeros(rows,cols,4);
 %Xx1c1=aXcam1(2) + 2*aXcam1(5).*x1
 
 
@@ -417,7 +592,7 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=3:4
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5)*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(10)*x2grid.^2 + ...
                 2*a(11)*x2grid.*y2grid + a(12)*y2grid.^2 + 2*a(14)*x2grid.*zgrid + a(15)*y2grid.*zgrid;
@@ -432,7 +607,7 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 2nd order z
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        for gg=1:4
+        for gg=3:4
             a=aall(:,gg);
             dFdx1(:,:,gg) = a(2) + 2*a(5).*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(11)*x2grid.^2 + 2*a(12)*x2grid.*y2grid + ...
                 a(13)*y2grid.^2 + 2*a(15)*x2grid.*zgrid + a(16)*y2grid.*zgrid + a(18)*zgrid.^2;
@@ -442,6 +617,24 @@ betatan(:,:,1)=(((dFdx3(:,:,2).*dFdx1(:,:,1)) - (dFdx1(:,:,2).*dFdx3(:,:,1)))./(
             
             dFdx3(:,:,gg) = a(4) + a(8)*x2grid + a(9)*y2grid + 2*a(10)*zgrid + a(15)*x2grid.^2 + a(16)*x2grid.*y2grid + ...
                 a(17)*y2grid.^2 + 2*a(18)*x2grid.*zgrid + 2*a(19)*y2grid.*zgrid;
+        end
+        
+    elseif caldata.modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        for gg=3:4
+            a=aall(:,gg);
+            dFdx1(:,:,gg) = a(2) + 2*a(5)*x2grid + a(6)*y2grid + a(8)*zgrid + 3*a(10)*x2grid.^2 + ...
+                2*a(11)*x2grid.*y2grid + a(12)*y2grid.^2 + 2*a(14)*x2grid.*zgrid + a(15)*y2grid.*zgrid + ...
+                2*a(17)*x2grid.*y2grid.*zgrid + a(18)*y2grid.^2.*zgrid + 3*a(19)*x2grid.^2.*zgrid;
+            
+            dFdx2(:,:,gg) = a(3) + a(6)*x2grid + 2*a(7)*y2grid + a(9)*zgrid + a(11)*x2grid.^2 + ...
+                2*a(12)*x2grid.*y2grid + 3*a(13)*y2grid.^2 + a(15)*x2grid.*zgrid + 2*a(16)*y2grid.*zgrid + ...
+                a(17)*x2grid.^2.*zgrid + 2*a(18)*x2grid.*y2grid.*zgrid + 3*a(20)*y2grid.^2.*zgrid;
+            
+            dFdx3(:,:,gg) = a(4) + a(8)*x2grid + a(9)*y2grid + a(14)*x2grid.^2 + a(15)*x2grid.*y2grid + a(16)*y2grid.^2 + ...
+                a(17)*x2grid.^2.*y2grid + a(18)*x2grid.*y2grid.^2 + a(19)*x2grid.^3 + a(20)*y2grid.^3;
         end
         
     end
@@ -468,12 +661,53 @@ betatan(:,:,2)=(((dFdx3(:,:,4).*dFdx1(:,:,3)) - (dFdx1(:,:,4).*dFdx3(:,:,3)))./(
     %keyboard;
 % Triangulation using formula (1) of that paper
 
+%Triangulate based on direction with largest viewing angle
+dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+
+%I think the above breaks when the cameras aren't arranged left-right on the same side
+dzX2= Dux./(alphatan(:,:,1)-alphatan(:,:,2));
+dzY2=-Duy./( betatan(:,:,1)- betatan(:,:,2));
+
 if max(max(abs(alphatan(:,:,1))-abs(alphatan(:,:,2))))>max(max(abs(betatan(:,:,1))-abs(betatan(:,:,2)))) % Previously a bracket was misplaced
-    dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+    %dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+    dz1=dzX2;
+    fprintf('using Dux\n')
 else
     %dz2=Duy./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));%(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
-    dz1=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+    %dz1=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+    dz1=dzY2;
+    fprintf('using Duy\n')
 end
+
+%compute the dz that minimizes the residual disparity for both dx and dy,
+%weighted by the camera angles
+% The following polynomial in dz the cost function for the minimization
+% of dr^2 = dx^2 + dy^2.
+% The roots will likely be imaginary, the real part will be the dz_min
+% [ (tan(a1) - tan(a2))^2 + (tan(b1) - tan(b2))^2, ...
+%    2*dy*(tan(b1) - tan(b2)) - 2*dx*(tan(a1) - tan(a2)), ...
+%    dx^2 + dy^2]
+A = (alphatan(:,:,1)-alphatan(:,:,2)).^2 + (betatan(:,:,1)-betatan(:,:,2)).^2;
+B = 2*Duy.*(betatan(:,:,1)-betatan(:,:,2)) - 2*Dux.*(alphatan(:,:,1)-alphatan(:,:,2));
+C = Dux.^2 + Duy.^2;
+
+dz2 = real((-B+sqrt(B.^2-4*A.*C))./(2*A));
+
+
+% %triangulate based on mean of both reconstructions
+% dzX=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
+% dzY=(sign(betatan(1,1)).*Duy)./(abs(betatan(:,:,1))+abs(betatan(:,:,2)));
+% dz1 = (dzX+dzY)/2;
+
+
+figure(7)
+subplot(2,2,1),imagesc(dz2),colorbar,title('dz2')
+% subplot(2,2,1),imagesc(dzX),colorbar,title('dzX')
+% subplot(2,2,2),imagesc(dzY),colorbar,title('dzY')
+subplot(2,2,3),imagesc(dzX2),colorbar,title('dzX2')
+subplot(2,2,4),imagesc(dzY2),colorbar,title('dzY2')
+
 % if (mean(abs(Dux(:))))>(mean(abs(Duy(:))))
 %     dz1=(-sign(alphatan(1,1)).*Dux)./(abs(alphatan(:,:,1))+abs(alphatan(:,:,2)));
 % elseif (mean(abs(Duy(:))))>(mean(abs(Dux(:))))
@@ -488,7 +722,7 @@ end
     
 %max(max(abs(dz2)))
 
-zgrid=zgrid-dz1;% the new z grid
+zgrid=zgrid+dz2;% the new z grid
 
 
 % figure(21);surf(atand(alphatan(:,:,1)));
