@@ -113,6 +113,11 @@ if strcmpi(tcorr,'FWC')
 elseif strcmpi(tcorr,'GCC')
     frac = 1;
     spectral = ones(size(spectral));
+elseif strcmpi(tcorr,'RPCG')
+    %we're cheating - fracval is actually the grid angles in degrees
+    grid_angle = fracval;
+    frac  = 1;
+    spectral = fftshift(energyfilt_grid(Sx,Sy,D,grid_angle,0));
 else
     frac = 1;
 end
@@ -668,7 +673,7 @@ switch upper(tcorr)
 
 
     %Robust Phase Correlation
-    case {'RPC','DRPC','GCC','FWC'}
+    case {'RPC','DRPC','GCC','FWC','RPCG'}
         
         if size(im1,3) == 3
             Gens=zeros(Sy,Sx,3,imClass);

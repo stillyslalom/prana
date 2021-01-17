@@ -129,7 +129,7 @@ Gres = zeros(P,2);
 % Not Sure
 Gbuf            = zeros(P,2);
 Corr            = cell(P,1);  %correlation type on each pass
-D               = zeros(P,2);
+D               = zeros(P,2);   %RPC diameter, or expected grid period for WFT-LSA
 Zeromean        = zeros(P,1);
 Peaklocator     = zeros(P,1);
 Velsmoothswitch = zeros(P,1);
@@ -160,6 +160,7 @@ PeakMag         = zeros(P,1);
 PeakVel         = zeros(P,1);
 wbase           = cell(0);
 frac_filt       = zeros(P,1);
+grid_angle      = zeros(P,2);   %expected grid angle for WFT-LSA processing of MTV images, in degrees
 mindefloop      = zeros(P,1); % variables for the deformation convergences
 maxdefloop      = zeros(P,1);
 condefloop      = zeros(P,1);
@@ -215,9 +216,10 @@ for e=1:P
     Wsize(e,:) = [str2double(A.winsize(1:(strfind(A.winsize,',')-1))) str2double(A.winsize((strfind(A.winsize,',')+1):end))];
     Gres(e,:) = [str2double(A.gridres(1:(strfind(A.gridres,',')-1))) str2double(A.gridres((strfind(A.gridres,',')+1):end))];
     Gbuf(e,:) = [str2double(A.gridbuf(1:(strfind(A.gridbuf,',')-1))) str2double(A.gridbuf((strfind(A.gridbuf,',')+1):end))];
-    Corr{e} = A.corr; %why do we subtract 1 from A.corr?  Just to make things more confusing? (SCC,RPC,GCC,FWC,SPC)
+    Corr{e} = A.corr; %(SCC,RPC,DRPC,GCC,FWC,SPC,DCC,hsDCC,WFT-LSA,RPCG)
     D(e,:) = [str2double(A.RPCd(1:(strfind(A.RPCd,',')-1))) str2double(A.RPCd((strfind(A.RPCd,',')+1):end))];
     frac_filt(e) = str2double(A.frac_filt);
+    grid_angle(e,:) = [str2double(A.grid_angle(1:(strfind(A.grid_angle,',')-1))) str2double(A.grid_angle((strfind(A.grid_angle,',')+1):end))];
     Zeromean(e) = str2double(A.zeromean);
     Peaklocator(e) = str2double(A.peaklocator);
     Velsmoothswitch(e) = str2double(A.velsmooth);
@@ -277,7 +279,7 @@ for e=1:P
     else
         uncertainty(e).Uncswitch=A.uncertaintyestimate;
     end
-    if uncertainty(e).Uncswitch && ~strcmpi(Corr{e},'SPC')
+    if uncertainty(e).Uncswitch && ~any(strcmpi(Corr{e},{'SPC','WFT-LSA','RPCG'}))
         if ischar(A.ppruncertainty)
             uncertainty(e).ppruncertainty=str2double(A.ppruncertainty);
         else
@@ -306,7 +308,7 @@ for e=1:P
         end
     else
         %even if the method is on, don't do the work if master uncertainty 
-        %anlayis switch is turned off
+        %anlayis switch is turned off, or method is WFT-LSA
     end
     
     %if mcuncertainty is on, we need to calculate miuncertainty too, so
@@ -698,11 +700,15 @@ switch char(M)
                 %correlate image pair
                 if (e~=1 || defloop~=1 || VelInputFile) && ~isempty(regexpi(M,'Deform','once'))          %then don't offset windows, images already deformed
                     %if Corr(e)<4
-                    if ~strcmpi(Corr{e},'SPC')
+                    if ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                         % keyboard;
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
-                        
-                    else %then was SPC
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,grid_angle(e,:),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        end
+                    elseif strcmpi(Corr{e},'SPC') %then was SPC
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
                         %Sam deleted the Cc output from PIVPhaseCorr - why?  because we don't use it? But it's needed for Dc in next line?
                         %[Xc,Yc,Uc,Vc]=PIVphasecorr(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0));
@@ -716,6 +722,13 @@ switch char(M)
                             uncertainty2D.Uimy  = zeros(length(Xc),1);
                             uncertainty2D.Nump  = zeros(length(Xc),1);
                         end
+                    elseif strcmpi(Corr{e},'WFTLSA') %then was SPC
+                        [Xc,Yc,Uc,Vc]=PIVgridproc(im1d,im2d,Wsize(e,:),Wres(:, :, e),0,D(e,:),grid_angle(e,:),Zeromean(e),X(Eval>=0),Y(Eval>=0));
+                        Cc = zeros(size(Xc),imClass);
+                        Dc = zeros(size(Cc),imClass);
+                        %no uncertainty methods defined for grid images
+                    else
+                        error(['Unknown correlation type ''',Corr{e},''' for instantaneous PIV'])
                     end
                     
                     % use coordinate system for deformed second
@@ -769,7 +782,7 @@ switch char(M)
                         %if shift takes us outside image domain, just
                         %return a NaN, we don't know where that point
                         %will go
-                        if find_extrapeaks
+                        if find_extrapeaks && ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                             %there will be 3 velocity fields in Uc and Vc, so repmat vector origins
                             U2 = interp2(XI,YI,XD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(XDc,[1,3]);
                             V2 = interp2(XI,YI,YD2,repmat(Xc,[1 3])+Uc,repmat(Yc,[1 3])+Vc,'cubic',NaN) - repmat(YDc,[1,3]);
@@ -839,7 +852,7 @@ switch char(M)
                     end
 
                     %reincorporate deformation as velocity for next pass
-                    if find_extrapeaks && ~strcmpi(Corr{e},'SPC')
+                    if find_extrapeaks && ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                         %there will be 3 velocity fields in Uc an Vc, so repmat bulk offset
                         Uc = Uc + repmat(Ub(Eval>=0),[1 3]);
                         Vc = Vc + repmat(Vb(Eval>=0),[1 3]);
@@ -850,14 +863,19 @@ switch char(M)
                     end
                                                                    
                 else  %either first pass, or not deform
-                    if ~strcmpi(Corr{e},'SPC')
+                    if ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                         if any(isnan(Ub(Eval>=0)))
                             keyboard
                         end
                         %Uc, Vc will include Ub, Vb from previous pass or BWO 
-                        [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
-                            
-                    else
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,grid_angle(e,:),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,Uc,Vc,Cc,Dc,Cp,uncertainty2D,SNRmetric]=PIVwindowed(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peaklocator(e),find_extrapeaks,frac_filt(e),saveplane(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        end
+                        
+                    elseif strcmpi(Corr{e},'SPC')
                         %Uc, Vc will include Ub, Vb from previous pass or BWO 
                         [Xc,Yc,Uc,Vc,Cc]=PIVphasecorr(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),Peakswitch(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
                         Dc = zeros(size(Cc),imClass);
@@ -870,7 +888,15 @@ switch char(M)
                             uncertainty2D.Uimy  = zeros(length(Xc),1);
                             uncertainty2D.Nump  = zeros(length(Xc),1);
                         end
+                    elseif strcmpi(Corr{e},'WFTLSA') %then was WFT-LSA
+                        [Xc,Yc,Uc,Vc]=PIVgridproc(im1,im2,Wsize(e,:),Wres(:, :, e),0,D(e,:),grid_angle(e,:),Zeromean(e),X(Eval>=0),Y(Eval>=0),Ub(Eval>=0),Vb(Eval>=0));
+                        Cc = zeros(size(Xc),imClass);
+                        Dc = zeros(size(Xc),imClass);
+                        %no uncertainty methods defined for grid images
+                    else
+                        error(['Unknown correlation type ''',Corr{e},''' for instantaneous PIV'])
                     end
+
                 end
                 
                 % Perform image matching uncertainty estimation using deform for
@@ -982,7 +1008,7 @@ switch char(M)
                 %Where Eval<0, no correlation was performed and Uc, etc are
                 %missing values.  Use Eval to fill in complete matrices U,V
                 %over all grid points X,Y.
-                if ~strcmpi(Corr{e},'SPC') %was not SPC=4
+                if ~any(strcmpi(Corr{e},{'SPC','WFTLSA'})) %was not SPC or WFTLSA
                     if find_extrapeaks
                         U=zeros(size(X,1),3,imClass);
                         V=zeros(size(X,1),3,imClass);
@@ -995,7 +1021,7 @@ switch char(M)
                         U=zeros(size(X),imClass);V=zeros(size(X),imClass);C=zeros(size(X),imClass);Di=zeros(size(X),imClass);
                         U(Eval>=0)=Uc;V(Eval>=0)=Vc;
                     end
-                else %Corr was SPC=4
+                elseif strcmpi(Corr{e},'SPC')
                     U=zeros(size(X),imClass);V=zeros(size(X),imClass);
                     U(Eval>=0)=Uc;V(Eval>=0)=Vc;
                     if Peakswitch(e)
@@ -1008,6 +1034,15 @@ switch char(M)
                         C=zeros(size(X),imClass);
                         Di=zeros(size(X),imClass);
                     end
+                elseif strcmpi(Corr{e},'WFTLSA') %then was WFT-LSA
+                    U=zeros(size(X),imClass);
+                    V=zeros(size(X),imClass);
+                    C=zeros(size(X),imClass);
+                    Di=zeros(size(X,1),imClass);
+                    U(Eval>=0)  = Uc;
+                    V(Eval>=0)  = Vc;
+                    C(Eval>=0)  = Cc;
+                    Di(Eval>=0) = Dc;
                 end
                 
                 corrtime(e,defloop)=toc(t1);
@@ -1204,13 +1239,13 @@ switch char(M)
                     
                     %SPC only returns 1 peak right now?
                     if Peakswitch(e)
-                        if PeakVel(e) && ~strcmpi(Corr{e},'SPC')
+                        if PeakVel(e) && ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                             U=[Uval,U(:,1:PeakNum(e))];
                             V=[Vval,V(:,1:PeakNum(e))];
                         else
                             U=Uval; V=Vval;
                         end
-                        if PeakMag(e)
+                        if PeakMag(e) && ~strcmpi(Corr{e},'WFTLSA')
                             C=[Cval,C(:,1:PeakNum(e))];
                             Di=[Dval,Di(:,1:PeakNum(e))];
                         else
@@ -1285,7 +1320,7 @@ switch char(M)
                     end
                     % This saves the correlation planes if that selection
                     % has been made in the job file.
-                    if saveplane(e) && ~strcmpi(Corr{e},'SPC')
+                    if saveplane(e) && ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                         Xloc = Xc;Yloc=Yc;C_planes=Cp;%#ok
                         save(fullfile(pltdirec,sprintf(['%scorrplanes_%0.' Data.imzeros 'i.mat' ],wbase{e,:},I1(q))),'Xloc','Yloc','C_planes')
                         clear Xloc Yloc C_planes
@@ -1503,6 +1538,10 @@ switch char(M)
         %% --- Ensemble and Ensemble Deform ---
         frametime=zeros(P,1);
         
+        if strcmpi(Corr{e},'WFTLSA') %then was SPC
+            error('WFT-LSA does not work with Ensemble correlation.')
+        end
+
         %initialize grid and evaluation matrix
         if strcmpi(Data.imext,'mat') %read .mat file, image must be stored in variable 'I'
             loaddata=load([imbase sprintf(['%0.' Data.imzeros 'i.' Data.imext],I1(1))]);
@@ -1750,7 +1789,7 @@ switch char(M)
                             [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:), Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
                         end
                         
-                        if ~strcmpi(Corr{e},'SPC')
+                        if ~any(strcmpi(Corr{e},{'SPC','WFTLSA'}))
                             if q==1
                                 CCmdist=CC;
                                 %cnvg_est = 0;
@@ -1764,9 +1803,12 @@ switch char(M)
                                 %cnvg_est = 0;%nanmean(mean(mean(abs(ave_pre-ave_cur),1),2)./nanmean(nanmean(abs(ave_cur),1),2));
                                 CC = []; %#ok% This clear is required for fine grids or big windows
                             end
-                        else %if Corr(e)==4 %SPC processor
+                        elseif strcmpi(Corr{e},'SPC') %then was SPC
                             error('SPC Ensemble does not work with parallel processing. Try running again on a single core.')
+                        else
+                            error(['Unknown correlation type ''',Corr{e},''' for instantaneous PIV'])
                         end
+                    
                         corrtime=toc(t1);
                         if strcmpi(M,'EDeform') && (e~=1 || defloop~=1 || VelInputFile)
                             fprintf('deformation %4.0f of %4.0f...      %0.2i:%0.2i.%0.0f\n',q,length(I1dist),floor(deformtime/60),floor(rem(deformtime,60)),floor((rem(deformtime,60)-floor(rem(deformtime,60)))*10))
@@ -1902,12 +1944,22 @@ switch char(M)
                     if strcmpi(M,'EDeform') && (e~=1 || defloop ~=1 || VelInputFile)
                         %previous pass velocities have been encoded in
                         %deformed images, so don't  pass a shift
-                        [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),grid_angle(e,:),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,CC]=PIVensemble(im1d,im2d,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e));
+                        end
                     else
                         %Not using deform, or either first pass or defloop 
                         %iteration with no velocity input file, so use raw 
                         %images with previous shift (Ub,Vb)
-                        [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        if strcmpi(Corr{e},'RPCG')
+                            %need to put grid_angle into frac_filt
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),grid_angle(e,:),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        else %must be SCC,DCC,RPC,DRPC,etc. ...
+                            [Xc,Yc,CC]=PIVensemble(im1,im2,Corr{e},Wsize(e,:),Wres(:, :, e),0,D(e,:),Zeromean(e),frac_filt(e),X(Eval>=0),Y(Eval>=0),uncertainty(e),Ub(Eval>=0),Vb(Eval>=0));
+                        end
                     end
                     
                     if ~strcmpi(Corr{e},'SPC')   %SPC=4 %SCC or RPC
