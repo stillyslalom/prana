@@ -136,7 +136,7 @@ if strcmpi(sizeprops.method,'TPG')%sizeprops.method==2
         x_c = locxy(i,1)+x_cg-1;
         y_c = locxy(i,2)+y_cg-1;
         
-        if nnz(isnan([x_c,y_c,D,I0])>1)
+        if nnz(isnan([x_c,y_c,D,I0]))>1
             if sizeprops.errors==0
                 %retain the IWC estimate
             else
@@ -162,7 +162,7 @@ elseif strcmpi(sizeprops.method,'FPG') || strcmpi(sizeprops.method,'CFPG') %size
         x_c = locxy(i,1)+x_cg-1;
         y_c = locxy(i,2)+y_cg-1;
 
-        if nnz(isnan([x_c,y_c,D,I0])>1)
+        if nnz(isnan([x_c,y_c,D,I0]))>1
             if sizeprops.errors==0
                 %retain the IWC estimate
             else
