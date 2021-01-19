@@ -207,12 +207,17 @@ else
                     t0 = clock;
                     loadname = sprintf('%%s%%s%%s%%0%0.0fd.%s',Data.imzeros);
                     
-                    if strcmpi(Data.imext,'tif')
-                        IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1dist(i),'tif')));
-                    elseif strcmpi(Data.imext,'mat')
-                        IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1dist(i),'mat'));
+                    %if strcmpi(Data.imext,'tif')
+                    %    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif')));
+                    if strcmpi(Data.imext,'mat')
+                        IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'mat'));
+                    elseif strcmpi(Data.imext,'bmp')
+                        [IM,MAP] = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext));
+                        IM = double(reshape(255*MAP(IM(:)+1,:),[size(IM),3]));
                     else
-                        error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
+                        IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext)));                  
+                    %else
+                    %    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
                     end
                     
                     if size(IM, 3) > 2
@@ -256,13 +261,19 @@ else
                 loadname = sprintf('%%s%%s%%s%%0%0.0fd.%s',Data.imzeros);
                 fprintf(loadname,'processing image-',Data.slsh,Data.imbase,I1(i),Data.imext);
                 
-                if strcmpi(Data.imext,'tif')
-                    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif')));
-                elseif strcmpi(Data.imext,'mat')
+                %if strcmpi(Data.imext,'tif')
+                %    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif')));
+                if strcmpi(Data.imext,'mat')
                     IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'mat'));
+                elseif strcmpi(Data.imext,'bmp')
+                    [IM,MAP] = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext));
+                    IM = double(reshape(255*MAP(IM(:)+1,:),[size(IM),3]));
                 else
-                    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
+                    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext)));                  
+                %else
+                %    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
                 end
+                
                 if size(IM, 3) > 2
                     %Extract only red channel
                     if Data.channel == 1;
@@ -351,12 +362,17 @@ else
                     t0 = clock;
                     loadname = sprintf('%%s%%s%%s%%0%0.0fd.%%s',Data.imzeros);
                     
-                    if strcmpi(Data.imext,'tif')
-                        IM = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1dist(i),'tif'));
-                    elseif strcmpi(Data.imext,'mat')
-                        IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1dist(i),'mat'));
+                    %if strcmpi(Data.imext,'tif')
+                    %    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif')));
+                    if strcmpi(Data.imext,'mat')
+                        IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'mat'));
+                    elseif strcmpi(Data.imext,'bmp')
+                        [IM,MAP] = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext));
+                        IM = double(reshape(255*MAP(IM(:)+1,:),[size(IM),3]));
                     else
-                        error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
+                        IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext)));                  
+                    %else
+                    %    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
                     end
                     
                     if size(IM, 3) > 2
@@ -412,12 +428,17 @@ else
                 loadname = sprintf('%%s%%s%%s%%0%0.0fd.%%s',Data.imzeros);
                 fprintf(loadname,'Sizing Frame-',Data.slsh,Data.imbase,I1(i),Data.imext)
                 
-                if strcmpi(Data.imext,'tif')
-                    IM = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif'));
-                elseif strcmpi(Data.imext,'mat')
+                %if strcmpi(Data.imext,'tif')
+                %    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'tif')));
+                if strcmpi(Data.imext,'mat')
                     IM = load(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),'mat'));
+                elseif strcmpi(Data.imext,'bmp')
+                    [IM,MAP] = imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext));
+                    IM = double(reshape(255*MAP(IM(:)+1,:),[size(IM),3]));
                 else
-                    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
+                    IM = double(imread(sprintf(loadname,Data.imdirec,Data.slsh,Data.imbase,I1(i),Data.imext)));                  
+                %else
+                %    error('Unknown Extension type: .%s use, please use either ''.tif '' or ''.mat'' ',Data.imext)
                 end
                 
                 if size(IM, 3) > 2
