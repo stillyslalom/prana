@@ -436,13 +436,19 @@ if strcmp(dewarpmethod,'Willert')
     fprintf('Dewarping Images...\n');
     dewarpflag=1; % added dewarpflag which is by default true but one can make it 0 to not run it if required
     if dewarpflag==1
-        delete(gcp);
-        parpool; % calling matlabpool for dewarping in parallel but in future versions it should be parpool
-        parfor k=fstart:fend+1
+        %delete(gcp);
+        %parpool; % calling matlabpool for dewarping in parallel but in future versions it should be parpool
+        klist = fstart:fstep:fend+1;
+        for nk=1:length(klist)
+            k = klist(nk);
             %reading recorded images
             
-            IMLi= im2double(imread(fullfile(dir1,sprintf(istring1,base1,k))));
-            IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            % IMLi= im2double(imread(fullfile(dir1,sprintf(istring1,base1,k))));
+            % IMRi= im2double(imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
+            
+            %sincBlackmanInterp2 cast to double internally
+            IMLi= (imread(fullfile(dir1,sprintf(istring1,base1,k))));
+            IMRi= (imread(fullfile(dir2,sprintf(istring1,base2,k+cstep-1))));
             
             incl=class(IMLi);
             %flipping images
@@ -461,6 +467,8 @@ if strcmp(dewarpmethod,'Willert')
             %flipping them back for saving
             IMLo=IMLo(end:-1:1,:);
             IMRo=IMRo(end:-1:1,:);
+            
+            %this is probably redundant
             IMLo=cast(IMLo,incl);
             IMRo=cast(IMRo,incl);
             
@@ -485,7 +493,7 @@ if strcmp(dewarpmethod,'Willert')
             %keyboard;
             
         end
-        delete(gcp);
+        %delete(gcp);
     end
 end
 
