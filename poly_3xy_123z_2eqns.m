@@ -51,9 +51,13 @@ if orderz==1                % cubic xy, linear z
 elseif orderz==2            % cubic xy, quadratic z
     polylist=[1 x(1) x(2) 0 x(1)^2 x(1)*x(2) x(2)^2 0  0 0 x(1)^3 x(1)^2*x(2) x(1)*x(2)^2 x(2)^3 0 0 0 0 0]';
     Fpoly=[aX*polylist;aY*polylist]-XYpoint; 
-    
+
+elseif orderz==4            % DaVis: 2 cubic xy planes
+    polylist=[1 x(1) x(2) 0 x(1)^2 x(1)*x(2) x(2)^2 0  0 x(1)^3 x(1)^2*x(2) x(1)*x(2)^2 x(2)^3 0 0 0 0 0 0 0]';
+    Fpoly=[aX*polylist;aY*polylist]-XYpoint; 
+      
 else             % camera pinhole
-    
+    warning('Camera pinhole model not implemented in poly_3xy_123z_2eqns')
 end
 
 F=Fpoly;

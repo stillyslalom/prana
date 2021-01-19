@@ -22,7 +22,7 @@ function varargout = prana_SPIV(varargin)
 
 % Edit the above text to modify the response to help prana_SPIV
 
-% Last Modified by GUIDE v2.5 09-Apr-2015 19:14:58
+% Last Modified by GUIDE v2.5 29-Jan-2019 22:58:09
 
 %     This file is part of prana, an open-source GUI-driven program for
 %     calculating velocity fields using PIV or PTV.
@@ -86,25 +86,25 @@ handles.output = hObject;
 guidata(hObject);
 guiprops = guidata(hObject);
 
-guiprops.markerdiam    = str2double(get(handles.markerdiam,'String'));
-guiprops.xplatelevelshift =str2double(get(handles.xplatelevelshift,'String'));
-guiprops.yplatelevelshift =str2double(get(handles.yplatelevelshift,'String'));
-guiprops.targetsidesbox = get(handles.targetsidesbox,'Value'); % cam1 orientation
-guiprops.targetsidesbox2 = get(handles.targetsidesbox2,'Value'); % cam2 orientation
-guiprops.vertmarkerspacing  = str2double(get(handles.vertmarkerspacing,'String'));
-guiprops.hormarkerspacing   = str2double(get(handles.hormarkerspacing,'String'));
-guiprops.targetcolor = get(handles.targetcolor,'Value');
-guiprops.zplanenumber    = str2double(get(handles.zplanenumber,'String'));
-guiprops.zstart = str2double(get(handles.zstart,'String'));
-guiprops.planespacing = str2num(get(handles.planespacing,'String')); % takes an array of plane_spacing if that is the input
-guiprops.channeldepth  = str2num(get(handles.channeldepth,'String'));% takes an array of channel depth like [0 1]
-guiprops.levelnumber = str2double(get(handles.levelnumber,'String'));
-guiprops.platethickness= str2double(get(handles.platethickness,'String'));
-guiprops.modeltypemenu    = get(handles.modeltypemenu,'Value');   %1 is for cubic xy and linear z, 2 is for cubic xy and quadratic z, 3 is for DLT
+guiprops.markerdiam    = str2double(get(handles.markerdiam_box,'String'));
+guiprops.xplatelevelshift =str2double(get(handles.xplatelevelshift_box,'String'));
+guiprops.yplatelevelshift =str2double(get(handles.yplatelevelshift_box,'String'));
+guiprops.targetsidesboxcam1 = get(handles.targetsidesbox,'Value'); % cam1 orientation
+guiprops.targetsidesboxcam2 = get(handles.targetsidesbox2,'Value'); % cam2 orientation
+guiprops.vertmarkerspacing  = str2double(get(handles.vertmarkerspacing_box,'String'));
+guiprops.hormarkerspacing   = str2double(get(handles.hormarkerspacing_box,'String'));
+guiprops.targetcolor = get(handles.targetcolor_box,'Value');
+guiprops.zplanenumber    = str2double(get(handles.zplanenumber_box,'String'));
+guiprops.zstart = str2double(get(handles.zstart_box,'String'));
+guiprops.planespacing = str2num(get(handles.planespacing_box,'String')); % takes an array of plane_spacing if that is the input
+guiprops.channeldepth  = str2num(get(handles.channeldepth_box,'String'));% takes an array of channel depth like [0 1]
+guiprops.levelnumber = str2double(get(handles.levelnumber_box,'String'));
+guiprops.platethickness= str2double(get(handles.platethickness_box,'String'));
+guiprops.modeltype    = get(handles.modeltypemenu,'Value');   %1 is for cubic xy and linear z, 2 is for cubic xy and quadratic z, 3 is for DLT
 % 
 
 contents= cellstr(get(handles.multilevelpopup,'String'));
-guiprops.multilevelpopup=contents{get(handles.multilevelpopup,'Value')};
+guiprops.multilevel=contents{get(handles.multilevelpopup,'Value')};
 
 
 if guiprops.targetcolor==1
@@ -112,8 +112,8 @@ if guiprops.targetcolor==1
 elseif guiprops.targcolor==2
     guiprops.caljob.grid_points_bright='false';
 end
-guiprops.caljob.targetsidecam1=guiprops.targetsidesbox;
-guiprops.caljob.targetsidecam2=guiprops.targetsidesbox2;
+guiprops.caljob.targetsidecam1=guiprops.targetsidesboxcam1;
+guiprops.caljob.targetsidecam2=guiprops.targetsidesboxcam2;
 guiprops.caljob.grid_point_diameter=guiprops.markerdiam;
 
 guiprops.caljob.x_grid_spacing=guiprops.hormarkerspacing;
@@ -125,13 +125,13 @@ guiprops.caljob.plane_spacing=guiprops.planespacing;
 guiprops.caljob.plane_numbers_list=1:1:guiprops.caljob.zplanenumber;
 
 %guiprops.caljob.multiple_level_plate ='true';
-if strcmp(guiprops.multilevelpopup,'True')
+if strcmp(guiprops.multilevel,'True')
     guiprops.caljob.multiple_level_plate ='true';
     set(handles.multilevelpanel,'Visible','on');
-    % set(handles.levelnumber,'String','3');
+    % set(handles.levelnumber_box,'String','3');
      guiprops.levelnumber=2;
     guiprops.caljob.plate_level_number=guiprops.levelnumber;
-elseif strcmp(guiprops.multilevelpopup,'False')
+elseif strcmp(guiprops.multilevel,'False')
     guiprops.caljob.multiple_level_plate ='false';
     set(handles.multilevelpanel,'Visible','off');
     guiprops.levelnumber = 1;
@@ -195,11 +195,12 @@ function loadpoints_Callback(hObject, eventdata, handles)
 [testptsname,testptspath] = uigetfile('*.mat','Select .mat file');
 
 if ~isequal(testptsname,0)                                                  % if the filename is valid
-    load([testptspath testptsname]);
+    loaddata = load([testptspath testptsname]);
+    datasave = loaddata.datasave;
     %keyboard;
 %     handles.output = hObject;
     guiprops = guidata(hObject);
-     %set(handles.markerdiam,'String',num2str(guiprops.markerdiam));
+     %set(handles.markerdiam_box,'String',num2str(guiprops.markerdiam_box));
     
     guiprops.propertiessavename = testptsname;
     guiprops.propertiessavepath = testptspath;
@@ -212,44 +213,46 @@ if ~isequal(testptsname,0)                                                  % if
     end
     %keyboard;
     %%%SOMEHOW HANDLES ARE NOT BEING RESET AFTER LOADING A JOB NOT SURE WHY
-% %      set(handles.markerdiam,'String',num2str(guiprops.markerdiam));
-% %      set(handles.xplatelevelshift,'String',num2str(guiprops.xplatelevelshift));
-% %      set(handles.yplatelevelshift,'String',num2str(guiprops.yplatelevelshift));
-% %      set(handles.targetsidesbox,'Value',guiprops.targetsidesbox);
-% %      set(handles.hormarkerspacing,'String',num2str(guiprops.hormarkerspacing));
-% %      set(handles.vertmarkerspacing,'String',num2str(guiprops.vertmarkerspacing));
-% %      set(handles.targetcolor,'Value',guiprops.targetcolor);
-% %      set(handles.multilevelpopup,'String',guiprops.multilevelpopup);
-% %      
-% %      set(handles.zplanenumber,'String',num2str(guiprops.zplanenumber));
-% %      set(handles.zstart,'String',num2str(guiprops.zstart));
-% %      set(handles.planespacing,'String',num2str(guiprops.planespacing));
-% %      set(handles.channeldepth,'String',num2str(guiprops.channeldepth));
-% %      set(handles.levelnumber,'String',num2str(guiprops.levelnumber));
-% %      set(handles.platethickness,'String',num2str(guiprops.platethickness));
-% %    
-% %     
-% %     if strcmp(guiprops.multilevelpopup,'True')
-% %         %guiprops.caljob.multiple_level_plate ='true';
-% %         set(handles.multilevelpanel,'Visible','on');
-% %         % set(handles.levelnumber,'String','3');
-% % %         guiprops.levelnumber=2;
-% % %         guiprops.caljob.plate_level_number=guiprops.levelnumber;
-% %     elseif strcmp(guiprops.multilevelpopup,'False')
-% %         %guiprops.caljob.multiple_level_plate ='false';
-% %         set(handles.multilevelpanel,'Visible','off');
-% % %         guiprops.levelnumber = 1;
-% % %         guiprops.caljob.plate_level_number=guiprops.levelnumber;
-% %     end
-% %     set(handles.modeltypemenu,      'Value' ,guiprops.modeltypemenu);
-% %     set(handles.convergebox,        'String',guiprops.convergemessage);
+     set(guiprops.markerdiam_box,       'String',num2str(datasave.markerdiam));
+     set(guiprops.xplatelevelshift_box, 'String',num2str(datasave.xplatelevelshift));
+     set(guiprops.yplatelevelshift_box, 'String',num2str(datasave.yplatelevelshift));
+     set(guiprops.targetsidesbox,       'Value',datasave.targetsidesboxcam1);
+     set(guiprops.targetsidesbox2,      'Value',datasave.targetsidesboxcam2);
+     set(guiprops.vertmarkerspacing_box,'String',num2str(datasave.vertmarkerspacing));
+     set(guiprops.hormarkerspacing_box, 'String',num2str(datasave.hormarkerspacing));
+     set(guiprops.targetcolor_box,      'Value', datasave.targetcolor);
+     set(guiprops.multilevelpopup,      'String',datasave.multilevel);
+     
+     set(guiprops.zplanenumber_box,     'String',num2str(datasave.zplanenumber));
+     set(guiprops.zstart_box,           'String',num2str(datasave.zstart));
+     set(guiprops.planespacing_box,     'String',num2str(datasave.planespacing));
+     channeldepth = num2str(datasave.channeldepth,'%g,');
+     set(guiprops.channeldepth_box,     'String',channeldepth(1:end-1));
+     set(guiprops.levelnumber_box,      'String',num2str(datasave.levelnumber));
+     set(guiprops.platethickness_box,   'String',num2str(datasave.platethickness));
+   
+    
+    if strcmp(datasave.multilevel,'True')
+        %guiprops.caljob.multiple_level_plate ='true';
+        set(guiprops.multilevelpanel,'Visible','on');
+        % set(handles.levelnumber_box,'String','3');
+%         guiprops.levelnumber_box=2;
+%         guiprops.caljob.plate_level_number=guiprops.levelnumber_box;
+    elseif strcmp(datasave.multilevel,'False')
+        %guiprops.caljob.multiple_level_plate ='false';
+        set(guiprops.multilevelpanel,'Visible','off');
+%         guiprops.levelnumber_box = 1;
+%         guiprops.caljob.plate_level_number=guiprops.levelnumber_box;
+    end
+    set(guiprops.modeltypemenu,      'Value' ,datasave.modeltype);
+    set(guiprops.convergebox,        'String',datasave.convergemessage);
     
     
-%     set(handles.markerdiam,         'String',num2str(guiprops.markerd));
-%     set(handles.vertmarkerspacing,  'String',num2str(guiprops.verspace));
-%     set(handles.hormarkerspacing,   'String',num2str(guiprops.horspace));
-%     set(handles.targetcolor,        'Value' ,guiprops.targetcolor);
-%     set(handles.channeldepth,       'String',num2str(guiprops.chandepth));
+%     set(handles.markerdiam_box,         'String',num2str(guiprops.markerd));
+%     set(handles.vertmarkerspacing_box,  'String',num2str(guiprops.verspace));
+%     set(handles.hormarkerspacing_box,   'String',num2str(guiprops.horspace));
+%     set(handles.targetcolor_box,        'Value' ,guiprops.targetcolor_box);
+%     set(handles.channeldepth_box,       'String',num2str(guiprops.chandepth));
    
 %    
     
@@ -267,7 +270,7 @@ guiprops = guidata(hObject);
 datasave.caljob             =guiprops.caljob;
 datasave.selfcaljob         =guiprops.selfcaljob;
 datasave.planarjob          = guiprops.planarjob;
-datasave.modeltypemenu      = guiprops.modeltypemenu;
+datasave.modeltype          = guiprops.modeltype;
 datasave.convergemessage    = guiprops.convergemessage;
 datasave.rectype            = guiprops.rectype;
 datasave.scaling            = guiprops.scaling;
@@ -275,8 +278,8 @@ datasave.scaling            = guiprops.scaling;
 datasave.markerdiam =guiprops.markerdiam ;
 datasave.xplatelevelshift=guiprops.xplatelevelshift;
 datasave.yplatelevelshift=guiprops.yplatelevelshift;
-datasave.targetsidesboxcam1=guiprops.targetsidesbox;
-datasave.targetsidesboxcam2=guiprops.targetsidesbox2;
+datasave.targetsidesboxcam1=guiprops.targetsidesboxcam1;
+datasave.targetsidesboxcam2=guiprops.targetsidesboxcam2;
 datasave.vertmarkerspacing=guiprops.vertmarkerspacing;
 datasave.hormarkerspacing=guiprops.hormarkerspacing;
 datasave.targetcolor=guiprops.targetcolor;
@@ -286,9 +289,9 @@ datasave.planespacing=guiprops.planespacing;
 datasave.channeldepth=guiprops.channeldepth;
 datasave.levelnumber=guiprops.levelnumber;
 datasave.platethickness=guiprops.platethickness;
-datasave.modeltypemenu=guiprops.modeltypemenu;   %1 is for cubic xy and linear z, 2 is for cubic xy and quadratic z, 3 is for DLT
+datasave.modeltype=guiprops.modeltype;   %1 is for cubic xy and linear z, 2 is for cubic xy and quadratic z, 3 is for DLT
 % 
-datasave.multilevelpopup=guiprops.multilevelpopup;
+datasave.multilevel=guiprops.multilevel;
 datasave.stereorecdirlist=guiprops.stereorecdirlist;
 
 datasave.propertiessavename = guiprops.propertiessavename;
@@ -319,7 +322,7 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function markerdiam_Callback(hObject, eventdata, handles)
+function markerdiam_box_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
 guiprops.markerdiam    = str2double(get(hObject,'String'));
@@ -328,14 +331,14 @@ guidata(hObject,guiprops);
 
 end
 
-function markerdiam_CreateFcn(hObject, eventdata, handles)
+function markerdiam_box_CreateFcn(hObject, eventdata, handles)
 end
 
 function targetsidesbox_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
-guiprops.targetsidesbox = get(hObject,'Value');
-guiprops.caljob.targetsidecam1=guiprops.targetsidesbox;
+guiprops.targetsidesboxcam1 = get(hObject,'Value');
+guiprops.caljob.targetsidecam1=guiprops.targetsidesboxcam1;
 guidata(hObject,guiprops);
 
 end
@@ -346,8 +349,8 @@ end
 function targetsidesbox2_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
-guiprops.targetsidesbox2 = get(hObject,'Value');
-guiprops.caljob.targetsidecam2=guiprops.targetsidesbox2;
+guiprops.targetsidesboxcam2 = get(hObject,'Value');
+guiprops.caljob.targetsidecam2=guiprops.targetsidesboxcam2;
 guidata(hObject,guiprops);
 
 end
@@ -356,7 +359,7 @@ end
 function targetsidesbox2_CreateFcn(hObject, eventdata, handles)
 end
 
-function vertmarkerspacing_Callback(hObject, eventdata, handles)
+function vertmarkerspacing_box_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
 guiprops.vertmarkerspacing  = str2double(get(hObject,'String'));
@@ -365,10 +368,10 @@ guidata(hObject,guiprops);
 
 end
 
-function vertmarkerspacing_CreateFcn(hObject, eventdata, handles)
+function vertmarkerspacing_box_CreateFcn(hObject, eventdata, handles)
 end
 
-function hormarkerspacing_Callback(hObject, eventdata, handles)
+function hormarkerspacing_box_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
 guiprops.hormarkerspacing   = str2double(get(hObject,'String'));
@@ -377,12 +380,12 @@ guidata(hObject,guiprops);
 
 end
 
-function hormarkerspacing_CreateFcn(hObject, eventdata, handles)
+function hormarkerspacing_box_CreateFcn(hObject, eventdata, handles)
 end
 
 
 
-function targetcolor_Callback(hObject, eventdata, handles)
+function targetcolor_box_Callback(hObject, eventdata, handles)
 
 guiprops           = guidata(hObject);
 guiprops.targetcolor = get(hObject,'Value');
@@ -397,7 +400,7 @@ guidata(hObject,guiprops);
 
 end
 
-function targetcolor_CreateFcn(hObject, eventdata, handles)
+function targetcolor_box_CreateFcn(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
 guiprops.targetcolor  = get(hObject,'Value');
@@ -406,7 +409,7 @@ guidata(hObject,guiprops);
 end
 
 
-function xplatelevelshift_Callback(hObject, eventdata, handles)
+function xplatelevelshift_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.xplatelevelshift = str2double(get(hObject,'String'));
 guiprops.caljob.x_plate_level_shift=[0,guiprops.xplatelevelshift];
@@ -414,8 +417,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function xplatelevelshift_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to xplatelevelshift (see GCBO)
+function xplatelevelshift_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to xplatelevelshift_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -427,7 +430,7 @@ end
 end
 
 
-function yplatelevelshift_Callback(hObject, eventdata, handles)
+function yplatelevelshift_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.yplatelevelshift = str2double(get(hObject,'String'));
 guiprops.caljob.y_plate_level_shift=[0,guiprops.yplatelevelshift];
@@ -435,8 +438,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function yplatelevelshift_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to yplatelevelshift (see GCBO)
+function yplatelevelshift_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to yplatelevelshift_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -451,14 +454,14 @@ end
 function multilevelpopup_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 contents= cellstr(get(hObject,'String'));
-guiprops.multilevelpopup=contents{get(hObject,'Value')};
-if strcmp(guiprops.multilevelpopup,'True')
+guiprops.multilevel=contents{get(hObject,'Value')};
+if strcmp(guiprops.multilevel,'True')
     guiprops.caljob.multiple_level_plate ='true';
     set(handles.multilevelpanel,'Visible','on');
-    % set(handles.levelnumber,'String','3');
+    % set(handles.levelnumber_box,'String','3');
      guiprops.levelnumber=2;
     guiprops.caljob.plate_level_number=guiprops.levelnumber;
-elseif strcmp(guiprops.multilevelpopup,'False')
+elseif strcmp(guiprops.multilevel,'False')
     guiprops.caljob.multiple_level_plate ='false';
     set(handles.multilevelpanel,'Visible','off');
     guiprops.levelnumber = 1;
@@ -484,7 +487,7 @@ end
 end
 
 
-function zplanenumber_Callback(hObject, eventdata, handles)
+function zplanenumber_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.zplanenumber    = str2double(get(hObject,'String'));
 guiprops.caljob.plane_numbers_list=1:1:guiprops.zplanenumber;
@@ -493,8 +496,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function zplanenumber_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to zplanenumber (see GCBO)
+function zplanenumber_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to zplanenumber_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -506,7 +509,7 @@ end
 end
 
 
-function zstart_Callback(hObject, eventdata, handles)
+function zstart_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.zstart = str2double(get(hObject,'String'));
 guiprops.caljob.z_grid_start=guiprops.zstart;
@@ -514,8 +517,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function zstart_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to zstart (see GCBO)
+function zstart_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to zstart_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -527,7 +530,7 @@ end
 end
 
 
-function planespacing_Callback(hObject, eventdata, handles)
+function planespacing_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 % STR2NUM is used because the plane spacing can vary in which case it will
 % be a vector.Str2double only operates on scalars.
@@ -537,8 +540,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function planespacing_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to planespacing (see GCBO)
+function planespacing_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to planespacing_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -548,7 +551,7 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 end
-function channeldepth_Callback(hObject, eventdata, handles)
+function channeldepth_box_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
 guiprops.channeldepth  = str2num(get(hObject,'String'));
@@ -556,10 +559,10 @@ guiprops.caljob.plate_level_spacing =guiprops.channeldepth;
 guidata(hObject,guiprops);
 end
 
-function channeldepth_CreateFcn(hObject, eventdata, handles)
+function channeldepth_box_CreateFcn(hObject, eventdata, handles)
 end
 
-function levelnumber_Callback(hObject, eventdata, handles)
+function levelnumber_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.levelnumber = str2double(get(hObject,'String'));
 guiprops.caljob.plate_level_number=guiprops.levelnumber;
@@ -567,8 +570,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function levelnumber_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to levelnumber (see GCBO)
+function levelnumber_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to levelnumber_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -580,7 +583,7 @@ end
 end
 
 
-function platethickness_Callback(hObject, eventdata, handles)
+function platethickness_box_Callback(hObject, eventdata, handles)
 guiprops            = guidata(hObject);
 guiprops.platethickness= str2double(get(hObject,'String'));
 guiprops.caljob.front_to_back_plate_thickness =guiprops.platethickness;
@@ -588,8 +591,8 @@ guidata(hObject,guiprops);
 end
 
 % --- Executes during object creation, after setting all properties.
-function platethickness_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to platethickness (see GCBO)
+function platethickness_box_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to platethickness_box (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
 
@@ -713,8 +716,8 @@ end
 function modeltypemenu_Callback(hObject, eventdata, handles)
 
 guiprops            = guidata(hObject);
-guiprops.modeltypemenu  = get(hObject,'Value');
-guiprops.caljob.modeltype=guiprops.modeltypemenu;
+guiprops.modeltype  = get(hObject,'Value');
+guiprops.caljob.modeltype=guiprops.modeltype;
 guidata(hObject,guiprops);
 
 end
@@ -738,7 +741,9 @@ guiprops = guidata(hObject);
 set(handles.convergebox,'String','fitting...');
 pause(0.001);
 
+guiprops.caljob = prana_fitmodel(guiprops.caljob);
 
+%{
 allx1data(:,1)   = guiprops.caljob.calibration_data.x_world_full{1};  % contains all x,y,z data for camera 1
 allx1data(:,2)   = guiprops.caljob.calibration_data.y_world_full{1};
 allx1data(:,3)   = guiprops.caljob.calibration_data.z_world_full{1};
@@ -792,7 +797,7 @@ guiprops.caljob.allX2data=allX2data;
 % fprintf('saving initial world and image coordinates....\n');
 % save('calxworld.mat','allx1data');save('calyworld.mat','allx2data');save('calximage.mat','allX1data');save('calyimage.mat','allX2data');
 
-[a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitmodels(allx1data,...
+[a_cam1, a_cam2, aXcam1, aYcam1, aXcam2, aYcam2, convergemessage] = fitcameramodels(allx1data,...
     allx2data,allX1data,allX2data,modeltype,optionsls);
 
 %inselfcal(allx1data,allx2data,allX1data,alX2data);
@@ -816,10 +821,13 @@ guiprops.caljob.a_cam2 = a_cam2;
 % % guiprops.ind2   = ind2;                                                     %
 % % guiprops.zpc1   = zero_plane_cam1;                                          %
 % % guiprops.zpc2   = zero_plane_cam2;                                          %
-                                                                            %
+
 guiprops.convergemessage = convergemessage;                                 %
 guiprops.caljob.convergemessage = convergemessage; 
 %
+%}
+guiprops.convergemessage = guiprops.caljob.convergemessage;   
+
 set(handles.convergebox,'String',guiprops.convergemessage);                 %
 %keyboard;
 %
@@ -854,7 +862,7 @@ caldata=guiprops.caljob;
 selfcaljob=guiprops.selfcaljob;
 
 reftrue=1;
- while(reftrue~=0)
+while(reftrue~=0)
      
  [caldatamod]=selfcalibration_main(caldata,selfcaljob);
  % Updating calibration data after each iteration of self calibration
@@ -868,7 +876,11 @@ reftrue=1;
  clear caldatamod;
  %[caldatamod]=selfcalibration_v1(caldata,selfcaljob);
  
-  refine= input('Do you want to Refine? (Y/N):','s');
+ %not sure why, but these input statements don't seem to be writing the
+ %prompt to the command window.  Move text to separate fprintf command
+  fprintf('Do you want to Refine? (Y/N):')
+  refine= input('','s');
+%   refine= input('Do you want to Refine? (Y/N):','s');
   
   if strcmpi(refine,'Y')
       
@@ -879,8 +891,8 @@ reftrue=1;
       reftrue=0;
   end
  
- end
- guiprops.caljob=caldata;
+end
+guiprops.caljob=caldata;
 guidata(hObject,guiprops);
 
 end
@@ -943,3 +955,4 @@ guiprops.scaling=scaling;
 
 guidata(hObject,guiprops);
 end
+

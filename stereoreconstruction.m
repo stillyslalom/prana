@@ -86,30 +86,33 @@ for j = 1:length(rectype)
         diroutlist.willert2dcam1=job1.outdirec;
         fprintf(['\nProcessing Planar Fields for Camera:',num2str(caldata.camnumber(1)),'\n']);
         pranaPIVcode(job1);
-        clear job1;
-        %2D processing for camera2
-        job1=planarjob;
-        job1.imdirec=dewarpdirlist.dewarpdir2;
-        job1.imbase=planarjob.imbase2;
-        job1.imdirec2=dewarpdirlist.dewarpdir2;
-        job1.imbase2=planarjob.imbase2;
+        %clear job1;
         
-        cam2dir = fullfile(job1.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]);
+        %2D processing for camera2
+        job2=planarjob;
+        job2.imdirec=dewarpdirlist.dewarpdir2;
+        job2.imbase=planarjob.imbase2;
+        job2.imdirec2=dewarpdirlist.dewarpdir2;
+        job2.imbase2=planarjob.imbase2;
+        
+        cam2dir = fullfile(job2.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]);
         if ~exist(cam2dir,'dir')
             mkdir(cam2dir);
         end
         
-        job1.outdirec=cam2dir;
-        diroutlist.willert2dcam2=job1.outdirec;
+        job2.outdirec=cam2dir;
+        diroutlist.willert2dcam2=job2.outdirec;
         fprintf(['\nProcessing Planar Fields for Camera:',num2str(caldata.camnumber(2)),'\n']);
-        pranaPIVcode(job1);
-        clear job1;
+        pranaPIVcode(job2);
+        %clear job1;
         
         stereodir = fullfile(planarjob.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(1)),'Camera',num2str(caldata.camnumber(2)),'_3Cfields',filesep]); 
         if ~exist(stereodir,'dir')
             mkdir(stereodir);
         end
         diroutlist.willert3cfields=fullfile(planarjob.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(1)),'Camera',num2str(caldata.camnumber(2)),'_3Cfields',filesep]);
+        diroutlist.willertjob1 = job1;
+        diroutlist.willertjob2 = job2;
         
         %stereo reconstruction
         fprintf('\n Doing Geometric Stereo Reconstructions.... \n')
@@ -138,20 +141,22 @@ for j = 1:length(rectype)
         
         clear job1;
         %2D processing for camera2
-        job1=planarjob;
-        job1.imdirec=planarjob.imdirec2;
-        job1.imbase=planarjob.imbase2;
-        job1.imdirec2=planarjob.imdirec2;
-        job1.imbase2=planarjob.imbase2;
+        job2=planarjob;
+        job2.imdirec=planarjob.imdirec2;
+        job2.imbase=planarjob.imbase2;
+        job2.imdirec2=planarjob.imdirec2;
+        job2.imbase2=planarjob.imbase2;
         
-        mkdir(fullfile(job1.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]));
-        job1.outdirec=fullfile(job1.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]);
-        diroutlist.soloff2dcam2=job1.outdirec;
+        mkdir(fullfile(job2.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]));
+        job2.outdirec=fullfile(job2.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(2)),filesep]);
+        diroutlist.soloff2dcam2=job2.outdirec;
         fprintf(['\nProcessing Planar Fields for Camera:',num2str(caldata.camnumber(2)),'\n']);
-        pranaPIVcode(job1);
+        pranaPIVcode(job2);
         
         mkdir(fullfile(planarjob.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(1)),'Camera',num2str(caldata.camnumber(2)),'_3Cfields',filesep]));
         diroutlist.soloff3cfields=fullfile(planarjob.outdirec,rectype{j},['Camera',num2str(caldata.camnumber(1)),'Camera',num2str(caldata.camnumber(2)),'_3Cfields',filesep]);
+        diroutlist.soloffjob1 = job1;
+        diroutlist.soloffjob2 = job2;
         
         %stereo reconstruction
         fprintf('\n Doing Generalized Stereo Reconstructions.... \n')

@@ -206,9 +206,13 @@ else
                     y_max=CORRELATION_HEIGHT;
                 end
                 
+                try
                 points = ...
                     double(SPATIAL_CORRELATION_PLANE(y_min:y_max,x_min:x_max).* ...
                     WEIGHTING_MATRIX(y_min:y_max,x_min:x_max));
+                catch err
+                    %pause
+                end
                 
                 % Subtract the minimum value from the points matrix
                 points_min_sub = points - min(points(:));
@@ -219,7 +223,7 @@ else
                 %Options for the lsqnonlin solver using Levenberg-Marquardt solver
                 options=optimset('MaxIter',1200,'MaxFunEvals',5000,'TolX',1e-6,'TolFun',1e-6,...
                     'Display','off','DiffMinChange',1e-7,'DiffMaxChange',1,...
-                    'Algorithm','levenberg-marquardt');
+                    'Algorithm','trust-region-reflective');
 %                 options=optimset('MaxIter',1200,'MaxFunEvals',5000,'TolX',1e-6,'TolFun',1e-6,...
 %                     'Display','off','DiffMinChange',1e-7,'DiffMaxChange',1,...
 %                     'Algorithm','levenberg-marquardt');

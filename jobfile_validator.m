@@ -150,6 +150,14 @@ if ~isfield(Data.PIV0,'frac_filt')
         end
     end
 end
+
+%does the job file have a variable for WFT-LSA grid angles?
+if ~isfield(Data.PIV0,'grid_angle')
+    for pass=0:str2double(Data.passes)
+        eval(['Data.PIV',num2str(pass),'.grid_angle=''0,90'';']);
+    end
+end
+
 %does the job file have infromation about interative window deformation
 if ~isfield(Data.PIV0,'deform_min')
     for pass=0:str2double(Data.passes)

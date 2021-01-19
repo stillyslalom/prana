@@ -1,4 +1,4 @@
-function [deltax,deltay,NPeak]=image_matching_prana(region3,region4)
+function [deltax,deltay,NPeak,dispx,dispy,cw]=image_matching_prana(region3,region4,dx,dy)
 %THIS FUNCTION CALCULATES THE DISPARITY BETWEEN TWO CLOSELY MATCHING
 %IMAGES(LIKE AFTER DWO OR ITERATIVE WINDOW DEFORMATION WHEN PARTICLES
 %IN IMAGE PAIR IS CLOSE TO EACH OTHER).
@@ -15,30 +15,43 @@ function [deltax,deltay,NPeak]=image_matching_prana(region3,region4)
 %FULVIO SCARANO
 %THIS CODE WRITTEN FOR PRANA IMPLEMENTATION IS WRITTEN BY SAYANTAN BHATTACHARYA.
 
+if nargin<3
+    dx = 0;
+    dy = 0;
+end
+
 %% Threshold image and find peaks
 sr=1; %SEARCH RADIUS FOR MATCHING PARTICLES
 improduct=((region3).*(region4)); %PRODUCT OF INTENSITIES
 rp3=improduct(improduct~=min(improduct(:)));%GETTING RID OF MINIMUM
-thresh=0.5*rms(rp3(:));%SELECTING THRESHOLD 0.5 OF RMS OF INTENSITY PRODUCT
+if isempty(rp3)
+    NPeak = 0; %all points in improduct are equal (probably 0)
+else
+    thresh=0.5*rms(rp3(:));%SELECTING THRESHOLD 0.5 OF RMS OF INTENSITY PRODUCT
 
-improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
+    improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
 
-peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
+    peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
 
-cnt=peakmat(peakmat==1);
-NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    cnt=peakmat(peakmat==1);
+    NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+end
 
 k=1;
 %% If less than 6 peaks detected reduce the threshold and iterate 3 times
-while NPeak<=6 && k<=3
+while NPeak<=6 && k<=3 && ~isempty(rp3)
     
     improduct=((region3).*(region4));%PRODUCT OF INTENSITIES
     rp3=improduct(improduct~=min(improduct(:)));%GETTING RID OF MINIMUM
-    thresh=(1/2^k)*rms(rp3(:));%IF NO PEAK FOUND HALF THE THRESHOLD
-    improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
-    peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
-    cnt=peakmat(peakmat==1);
-    NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    if isempty(rp3)
+        NPeak = 0; %all points in improduct are equal (probably 0)
+    else
+        thresh=(1/2^k)*rms(rp3(:));%IF NO PEAK FOUND HALF THE THRESHOLD
+        improduct(improduct<thresh)=0;%THRESHOLDING IMAGE
+        peakmat=imregionalmax(improduct,8);%FINDING PEAKS IN 8 POINT NEIGHBOURHOOD
+        cnt=peakmat(peakmat==1);
+        NPeak=length(cnt);%NUMBER OF PEAKS DETECTED
+    end
     
     %fprintf('No particle found above threshold, threshold reduced to 0.5 rms');
     k=k+1;
@@ -49,6 +62,9 @@ end
 if NPeak==0
     deltax=nan;
     deltay=nan;
+    dispx = [];
+    dispy = [];
+    cw    = [];
     return;
 end
     
@@ -58,7 +74,8 @@ region4 = region4-min(min(region4));
 
 % Find coordinates for detected peaks
 [Indylist,Indxlist] =find(peakmat(:,:)==1);
-improduct2=diag(improduct(Indylist,Indxlist));% Find the intensity product
+%improduct2=diag(improduct(Indylist,Indxlist));% Find the intensity product
+improduct2=improduct(sub2ind(size(improduct),Indylist,Indxlist));% Find the intensity product at each peak
 %values at detected peak location
 cw=(improduct2).^(0.5);%WEIGHTING FUNCTION
 
@@ -235,6 +252,10 @@ if NPeak==0
     deltay=nan;
     return;
 end
+
+%% Remove any subpixel shift left in the images
+dispx = dispx - dx;
+dispy = dispy - dy;
 
 %% CALCULATING WEIGHTED MEAN AND VARIANCE OF DISPARITY DISTRIBUTION FOR THIS
 %WINDOW PAIRS AND SAVING THE UNCERTAINTY AS OUTPUT.

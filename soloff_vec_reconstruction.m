@@ -118,7 +118,7 @@ for j=1:nof
     dFdx1=zeros(rows,cols,4);       % the 3rd dimention corresponds to dFdx1 for (X1,Y1,X2,Y2)
     dFdx2=zeros(rows,cols,4);
     dFdx3=zeros(rows,cols,4);
-    
+    %{
     if caldata.modeltype==1
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % Mapping the camera coord. to the World Coord. using 1sr order z
@@ -150,7 +150,30 @@ for j=1:nof
                 a(17)*ygrid.^2 + 2*a(18)*xgrid.*zgrid + 2*a(19)*ygrid.*zgrid;
         end
         
+    elseif caldata.modeltype==4
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Mapping the camera coord. to the World Coord. using linear interp between cubic xy planes
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        for gg=1:4
+            a=aall(:,gg);
+            dFdx1(:,:,gg) = a(2) + 2*a(5)*xgrid + a(6)*ygrid + a(8)*zgrid + 3*a(10)*xgrid.^2 + ...
+                2*a(11)*xgrid.*ygrid + a(12)*ygrid.^2 + 2*a(14)*xgrid.*zgrid + a(15)*ygrid.*zgrid + ...
+                2*a(17)*xgrid.*ygrid.*zgrid + a(18)*ygrid.^2.*zgrid + 3*a(19)*xgrid.^2.*zgrid;
+            
+            dFdx2(:,:,gg) = a(3) + a(6)*xgrid + 2*a(7)*ygrid + a(9)*zgrid + a(11)*xgrid.^2 + ...
+                2*a(12)*xgrid.*ygrid + 3*a(13)*ygrid.^2 + a(15)*xgrid.*zgrid + 2*a(16)*ygrid.*zgrid + ...
+                a(17)*xgrid.^2.*zgrid + 2*a(18)*xgrid.*ygrid.*zgrid + 3*a(20)*ygrid.^2.*zgrid;
+            
+            dFdx3(:,:,gg) = a(4) + a(8)*xgrid + a(9)*ygrid + a(14)*xgrid.^2 + a(15)*xgrid.*ygrid + a(16)*ygrid.^2 + ...
+                a(17)*xgrid.^2.*ygrid + a(18)*xgrid.*ygrid.^2 + a(19)*xgrid.^3 + a(20)*ygrid.^3;
+        end
+        
     end
+    %}
+    
+    [~,~,dFdx1(:,:,1:2),dFdx2(:,:,1:2),dFdx3(:,:,1:2)]=calculate_stereo_angle(aall(:,1:2),xgrid,ygrid,zgrid,caldata.modeltype);
+    [~,~,dFdx1(:,:,3:4),dFdx2(:,:,3:4),dFdx3(:,:,3:4)]=calculate_stereo_angle(aall(:,3:4),xgrid,ygrid,zgrid,caldata.modeltype);
+
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%% Reconstruct the vectors according to Soloff, meas. sci. tech., 1997
@@ -197,14 +220,18 @@ for j=1:nof
     
     %keyboard;
     
-    %foutname=regexp(flname1{j},'pass','split');
+    % %foutname=regexp(flname1{j},'pass','split');
+    % foutname=foutnamelist{j}{2};
+    % stereo_output=fullfile(diroutlist.soloff3cfields,['piv_2d3c_cam',num2str(caldata.camnumber(1)),'cam',num2str(caldata.camnumber(2)),'_pass_',foutname]);
+    
+    foutjob =foutnamelist{j}{1};
     foutname=foutnamelist{j}{2};
-    
-    stereo_output=fullfile(diroutlist.soloff3cfields,['piv_2d3c_cam',num2str(caldata.camnumber(1)),'cam',num2str(caldata.camnumber(2)),'_pass_',foutname]);
-    
+    foutfile=['piv_2d3c_',foutjob,'pass',foutname];
+    stereo_output=fullfile(diroutlist.soloff3cfields,foutfile);
+
     save(stereo_output,'X','Y','Z','U','V','W','Eval1','Eval2');
     
-    fprintf(['stereo frame_pass_',foutname,'  done.\n']);
+    fprintf(['stereo ',foutfile,'  done.\n']);
     %keyboard;
     clear X Y Z U V W Eval1 Eval2;
 end
