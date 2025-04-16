@@ -1,4 +1,4 @@
-function SNR = Cal_SNR(G,metric)
+function SNR = Cal_SNR(G,metric,varargin)
 % [ PPR PRMSR PCE ENTROPY ] = Cal_SNR( G )
 % This function is used to calculate the basic SNR of the correlation plane
 % The only input you need is the correlation plane (SCC,RPC)
@@ -11,6 +11,8 @@ CoPlane1 = G;
 CoPlane = CoPlane1-min(CoPlane1(:)); %minimum subtraction to eliminate background noise effect
 NX = size(CoPlane,2);
 NY = size(CoPlane,1);
+
+if isempty(varargin)
 [Max(1),Ind(1)] = max(CoPlane(:)); %find the primary peak
 tem = imregionalmax(CoPlane);
 peakmat = CoPlane.*tem;
@@ -18,6 +20,9 @@ NPeak = 2; %number of peaks you want to include
 for i = 2:NPeak
     peakmat(peakmat==Max(i-1)) = 0;
     [Max(i),Ind(i)] = max(peakmat(:)); % find the second and third peak (although the third peak is not used)
+end
+else % Reuse pre-computed peaks
+    Max = varargin{1};
 end
 PEAKMAGNI = Max (1)^2;  %magnitude of the primary peak
 
@@ -80,4 +85,5 @@ SNR=ENTROPY;
 end
 
 end
-
+    
+    

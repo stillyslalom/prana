@@ -385,7 +385,7 @@ switch upper(tcorr)
                     G(5) = abs( sum(sum(region1( :, 2:end  ).*region2( :, 1:end-1)))+sum(region1(:,1  ).*region2(:,end)) );
                     G(2) = abs( sum(sum(region1(1:end-1, : ).*region2(2:end  , : )))+sum(region1(end,:).*region2(1,  :)) );
                     G(4) = abs( sum(sum(region1(2:end  , : ).*region2(1:end-1, : )))+sum(region1(1  ,:).*region2(end,:)) );
-                   
+                    
                     if max(G)~=G(3)
                         %dump the subset, and start over at first color index
                         %(incr. at end of while loop back to 1)
@@ -442,8 +442,8 @@ switch upper(tcorr)
                 
                     % Evaluate uncertainty options for SCC
                     if uncertainty.ppruncertainty==1
-                         %SNR calculation the other output arguments of Cal_SNR
-                         %are Maximum peak value,PRMSR,PCE,ENTROPY
+                            %SNR calculation the other output arguments of Cal_SNR
+                            %are Maximum peak value,PRMSR,PCE,ENTROPY
                         metric='PPR';
                         PPRval = Cal_SNR(G,metric);
                         % Save the SNR metrics
@@ -840,12 +840,16 @@ switch upper(tcorr)
                     Corrplanes(:,:,n) = G;
                 end
                 
-                 % Evaluate uncertainty options for RPC
+                    % Evaluate uncertainty options for RPC
                 if uncertainty.ppruncertainty==1
-                     %SNR calculation the other output arguments of Cal_SNR
-                     %are Maximum peak value,PRMSR,PCE,ENTROPY
+                        %SNR calculation the other output arguments of Cal_SNR
+                        %are Maximum peak value,PRMSR,PCE,ENTROPY
                     metric='PPR';
-                    PPRval = Cal_SNR(G,metric);
+                    if Peakswitch % Can reuse secondary peak calc'd in `subpixel`
+                        PPRval = Cal_SNR(G,metric,Ctemp);
+                    else
+                        PPRval = Cal_SNR(G,metric);
+                    end
                     % Save the SNR metrics
                     SNRmetric.PPR(n)=PPRval;
                     % Evaluate PPR Uncertainty
@@ -976,3 +980,4 @@ if ~exist('uncertainty2D','var')
 end
 
 end
+    
